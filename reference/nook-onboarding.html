@@ -1,0 +1,2255 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="calm">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nook — Welcome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
+
+/* ════════════════════════════════════════
+   Z-INDEX SCALE
+   ════════════════════════════════════════ */
+:root {
+  --z-base:   1;
+  --z-sticky: 10;
+  --z-modal:  100;
+  --z-toast:  200;
+}
+
+/* ════════════════════════════════════════
+   THEME TOKENS
+   ════════════════════════════════════════ */
+[data-theme="calm"] {
+  --app-bg:      #F7F3EE;
+  --main-bg:     #F0EAE1;
+  --card-bg:     #FDFCFA;
+  --input-bg:    #EDE7DE;
+  --sidebar-bg:  #EDE7DE;
+  --sb-active:   rgba(194,98,63,0.10);
+  --sb-accent:   #C2623F;
+  --sb-icon:     #9A8C82;
+  --sb-icon-on:  #1C1410;
+  --sb-logo-bg:  #1C1410;
+  --sb-logo-fg:  #F7F3EE;
+  --sb-name:     #1C1410;
+  --sb-user:     #7A6B61;
+  --border:      rgba(28,20,16,0.10);
+  --border-hov:  rgba(28,20,16,0.18);
+  --text-1:      #1C1410;
+  --text-2:      #6B5E54;
+  --text-3:      #A8998E;
+  --topbar-bg:   #F7F3EE;
+  --topbar-bdr:  rgba(28,20,16,0.08);
+  --accent:      #C2623F;
+  --accent-bg:   rgba(194,98,63,0.08);
+  --accent-bdr:  rgba(194,98,63,0.20);
+  --gb-bg:       #1C1410;
+  --gb-title:    #F7F3EE;
+  --gb-sub:      rgba(247,243,238,0.55);
+  --gb-stat:     #F7F3EE;
+  --gb-stat-l:   rgba(247,243,238,0.5);
+  --gb-divider:  rgba(247,243,238,0.12);
+  --hero-hov-sh: 0 20px 40px -15px rgba(28,20,16,0.10);
+  --sub-divider: rgba(28,20,16,0.06);
+  --card-sh:     0 20px 40px -15px rgba(28,20,16,0.07);
+  --pro-bg:      rgba(194,98,63,0.08);
+  --pro-text:    #C2623F;
+  --error-col:   #B91C1C;
+  --error-bg:    rgba(239,68,68,0.07);
+  --error-bdr:   rgba(239,68,68,0.18);
+  /* ob-03 feature icon colors */
+  --feat-know-bg: rgba(45,106,79,0.08);
+  --feat-know-fg: #2D6A4F;
+  --feat-life-bg: rgba(61,107,232,0.08);
+  --feat-life-fg: #3D6BE8;
+  --feat-fin-bg:  rgba(194,98,63,0.08);
+  --feat-fin-fg:  #C2623F;
+}
+[data-theme="regular"] {
+  --app-bg:      #EEF0F5;
+  --main-bg:     #E4E7F0;
+  --card-bg:     #F8F9FC;
+  --input-bg:    #E4E7F0;
+  --sidebar-bg:  #E4E7F0;
+  --sb-active:   rgba(61,107,232,0.10);
+  --sb-accent:   #3D6BE8;
+  --sb-icon:     #8B93A6;
+  --sb-icon-on:  #151820;
+  --sb-logo-bg:  #151820;
+  --sb-logo-fg:  #EEF0F5;
+  --sb-name:     #151820;
+  --sb-user:     #6B7280;
+  --border:      rgba(21,24,32,0.10);
+  --border-hov:  rgba(21,24,32,0.18);
+  --text-1:      #151820;
+  --text-2:      #5A6070;
+  --text-3:      #939BAA;
+  --topbar-bg:   #EEF0F5;
+  --topbar-bdr:  rgba(21,24,32,0.08);
+  --accent:      #3D6BE8;
+  --accent-bg:   rgba(61,107,232,0.08);
+  --accent-bdr:  rgba(61,107,232,0.20);
+  --gb-bg:       #151820;
+  --gb-title:    #EEF0F5;
+  --gb-sub:      rgba(238,240,245,0.50);
+  --gb-stat:     #EEF0F5;
+  --gb-stat-l:   rgba(238,240,245,0.5);
+  --gb-divider:  rgba(238,240,245,0.12);
+  --hero-hov-sh: 0 20px 40px -15px rgba(21,24,32,0.12);
+  --sub-divider: rgba(21,24,32,0.06);
+  --card-sh:     0 20px 40px -15px rgba(21,24,32,0.08);
+  --pro-bg:      rgba(61,107,232,0.08);
+  --pro-text:    #3D6BE8;
+  --error-col:   #B91C1C;
+  --error-bg:    rgba(239,68,68,0.07);
+  --error-bdr:   rgba(239,68,68,0.18);
+  --feat-know-bg: rgba(45,106,79,0.08);
+  --feat-know-fg: #2D6A4F;
+  --feat-life-bg: rgba(232,160,85,0.10);
+  --feat-life-fg: #C07820;
+  --feat-fin-bg:  rgba(61,107,232,0.08);
+  --feat-fin-fg:  #3D6BE8;
+}
+[data-theme="dark"] {
+  --app-bg:      #0E0F13;
+  --main-bg:     #111318;
+  --card-bg:     #181B22;
+  --input-bg:    #1E2230;
+  --sidebar-bg:  #111318;
+  --sb-active:   rgba(232,160,85,0.12);
+  --sb-accent:   #E8A055;
+  --sb-icon:     #4A5165;
+  --sb-icon-on:  #F2F0EC;
+  --sb-logo-bg:  #E8A055;
+  --sb-logo-fg:  #0E0F13;
+  --sb-name:     #F2F0EC;
+  --sb-user:     #5A6070;
+  --border:      rgba(242,240,236,0.08);
+  --border-hov:  rgba(242,240,236,0.15);
+  --text-1:      #F2F0EC;
+  --text-2:      #8A8880;
+  --text-3:      #555350;
+  --topbar-bg:   #111318;
+  --topbar-bdr:  rgba(242,240,236,0.06);
+  --accent:      #E8A055;
+  --accent-bg:   rgba(232,160,85,0.10);
+  --accent-bdr:  rgba(232,160,85,0.22);
+  --gb-bg:       #0A0B0E;
+  --gb-title:    #F2F0EC;
+  --gb-sub:      rgba(242,240,236,0.45);
+  --gb-stat:     #F2F0EC;
+  --gb-stat-l:   rgba(242,240,236,0.45);
+  --gb-divider:  rgba(242,240,236,0.10);
+  --hero-hov-sh: 0 20px 40px -15px rgba(0,0,0,0.40);
+  --sub-divider: rgba(242,240,236,0.05);
+  --card-sh:     0 20px 40px -15px rgba(0,0,0,0.30);
+  --pro-bg:      rgba(232,160,85,0.10);
+  --pro-text:    #E8A055;
+  --error-col:   #FCA5A5;
+  --error-bg:    rgba(239,68,68,0.12);
+  --error-bdr:   rgba(239,68,68,0.25);
+  --feat-know-bg: rgba(45,106,79,0.12);
+  --feat-know-fg: #4CAF80;
+  --feat-life-bg: rgba(232,160,85,0.10);
+  --feat-life-fg: #E8A055;
+  --feat-fin-bg:  rgba(61,107,232,0.10);
+  --feat-fin-fg:  #6B8FEE;
+}
+
+/* ════════════════════════════════════════
+   SECTION ACCENT COLOURS
+   ════════════════════════════════════════ */
+:root {
+  --fin-col:   #2D6A4F;
+  --fin-bg:    rgba(45,106,79,0.07);
+  --fin-bdr:   rgba(45,106,79,0.18);
+  --know-col:  #1D6FA8;
+  --know-bg:   rgba(29,111,168,0.07);
+  --know-bdr:  rgba(29,111,168,0.18);
+  --life-col:  #A05C20;
+  --life-bg:   rgba(160,92,32,0.07);
+  --life-bdr:  rgba(160,92,32,0.18);
+  --font-sans: 'Geist', sans-serif;
+  --font-serif:'Lora', serif;
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ════════════════════════════════════════
+   ANIMATIONS
+   ════════════════════════════════════════ */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position: 400px 0; }
+}
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 0.8; transform: scale(1.06); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-5px); }
+  40%       { transform: translateX(5px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+@keyframes bump {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes icon-pop {
+  0%   { opacity: 0; transform: scale(0.6); }
+  70%  { transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes ring-pulse {
+  0%   { transform: scale(1); opacity: 0.20; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes step-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ════════════════════════════════════════
+   BASE RESET
+   ════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  background: var(--app-bg);
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  transition: background 0.3s;
+}
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-hov); border-radius: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ════════════════════════════════════════
+   STEP SYSTEM
+   ════════════════════════════════════════ */
+.ob-step {
+  display: none;
+}
+.ob-step.active {
+  display: flex;
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
+  flex-direction: column;
+  padding: 28px 24px 0;
+  animation: step-enter 0.35s var(--ease-spring) both;
+}
+
+/* ════════════════════════════════════════
+   SHARED: TOP NAV & BACK BUTTON
+   ════════════════════════════════════════ */
+.ob-topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+#step-2 .ob-topnav { margin-bottom: 44px; }
+#step-12 .ob-topnav { justify-content: center; margin-bottom: 0; }
+
+.ob-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--card-bg);
+  border: 0.5px solid var(--border);
+  box-shadow: var(--card-sh);
+  cursor: pointer;
+  background: var(--card-bg);
+  transition: all 0.25s var(--ease-spring);
+}
+.ob-back-btn:hover  { background: var(--input-bg); border-color: var(--border-hov); }
+.ob-back-btn:active { transform: scale(0.95); }
+.ob-back-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ob-back-btn i { font-size: 17px; color: var(--text-2); }
+
+.ob-step-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ════════════════════════════════════════
+   SHARED: PROGRESS BAR
+   ════════════════════════════════════════ */
+.ob-progress {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 36px;
+}
+.ob-prog-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.3s;
+}
+.ob-prog-seg.done   { background: var(--accent); opacity: 0.40; }
+.ob-prog-seg.active { background: var(--accent); opacity: 1; }
+
+/* ════════════════════════════════════════
+   SHARED: HEADING BLOCK
+   ════════════════════════════════════════ */
+.ob-heading-block { margin-bottom: 32px; }
+#step-12 .ob-heading-block { text-align: center; margin-bottom: 32px; }
+
+.ob-headline {
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 400;
+  color: var(--text-1);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+#step-2 .ob-headline  { font-size: 36px; line-height: 1.1; }
+#step-12 .ob-headline { font-size: 34px; line-height: 1.15; margin-bottom: 10px; }
+
+.ob-subtext {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+#step-12 .ob-subtext {
+  font-size: 13.5px;
+  max-width: 300px;
+  margin: 0 auto;
+  color: var(--text-2);
+}
+
+/* ════════════════════════════════════════
+   SHARED: FORMS
+   ════════════════════════════════════════ */
+.ob-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ob-form.shake { animation: shake 0.35s var(--ease-spring); }
+.ob-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ob-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ob-field-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: block;
+}
+.ob-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ob-input {
+  width: 100%;
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 15px;
+  font-family: var(--font-sans);
+  color: var(--text-1);
+  background: var(--card-bg);
+  outline: none;
+  box-shadow: var(--card-sh);
+  transition: background 0.3s, color 0.3s, border-color 0.2s, box-shadow 0.2s;
+  font-variant-numeric: tabular-nums;
+}
+.ob-input::placeholder { color: var(--text-3); }
+.ob-input:hover        { border-color: var(--border-hov); }
+.ob-input:focus        { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.ob-input:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.ob-input.has-action   { padding-right: 44px; }
+.ob-input.error { border-color: var(--error-col); box-shadow: 0 0 0 3px var(--error-bg); }
+.ob-input.valid { border-color: #2D6A4F; box-shadow: 0 0 0 3px rgba(45,106,79,0.07); }
+
+.ob-input-action {
+  position: absolute;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  transition: color 0.2s;
+}
+.ob-input-action:hover { color: var(--text-2); }
+.ob-input-action i { font-size: 16px; }
+
+.ob-input-status {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.ob-input-status.show { opacity: 1; }
+.ob-input-status.ok i  { color: #2D6A4F; }
+.ob-input-status.err i { color: var(--error-col); }
+
+.ob-field-error {
+  font-size: 11px;
+  color: var(--error-col);
+  line-height: 1.4;
+  display: none;
+  padding-left: 2px;
+}
+.ob-field-error.show { display: block; }
+.ob-field.has-error .ob-input-wrap { animation: shake 0.35s var(--ease-spring); }
+
+.ob-privacy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: var(--accent-bg);
+  border: 0.5px solid var(--accent-bdr);
+}
+.ob-privacy-note i { font-size: 14px; color: var(--accent); margin-top: 1px; flex-shrink: 0; }
+.ob-privacy-note p { font-size: 11px; color: var(--text-2); line-height: 1.5; }
+
+/* ════════════════════════════════════════
+   SHARED: CTA AREA & BUTTONS
+   ════════════════════════════════════════ */
+.ob-cta-area {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  margin-top: auto;
+  padding-bottom: 32px;
+  padding-top: 28px;
+}
+#step-12 .ob-cta-area { padding-bottom: 36px; padding-top: 24px; }
+#step-1  .ob-cta-area { padding-top: 0; }
+
+.ob-cta-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 15px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s var(--ease-spring);
+  box-shadow: 0 8px 24px -8px rgba(194,98,63,0.40);
+}
+[data-theme="regular"] .ob-cta-btn { box-shadow: 0 8px 24px -8px rgba(61,107,232,0.35); }
+[data-theme="dark"]    .ob-cta-btn { box-shadow: 0 8px 24px -8px rgba(232,160,85,0.35); }
+.ob-cta-btn:hover  { opacity: 0.90; transform: translateY(-1px); }
+.ob-cta-btn:active { transform: scale(0.97) translateY(0); }
+.ob-cta-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ob-cta-btn:disabled, .ob-cta-btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  pointer-events: none;
+}
+.ob-cta-btn i { font-size: 16px; color: #fff; }
+
+.ob-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.3s var(--ease-spring);
+  box-shadow: 0 8px 24px -8px rgba(194,98,63,0.40);
+}
+[data-theme="regular"] .ob-submit-btn { box-shadow: 0 8px 24px -8px rgba(61,107,232,0.35); }
+[data-theme="dark"]    .ob-submit-btn { box-shadow: 0 8px 24px -8px rgba(232,160,85,0.35); }
+.ob-submit-btn:hover  { opacity: 0.90; transform: translateY(-1px); }
+.ob-submit-btn:active { transform: scale(0.97) translateY(0); }
+.ob-submit-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.ob-skip-link, .ob-plans-link, .ob-signin-link, .ob-bottom-link {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-3);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.ob-skip-link:hover, .ob-plans-link:hover { color: var(--text-2); }
+.ob-signin-link span, .ob-bottom-link span {
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ob-signin-link:hover span, .ob-bottom-link:hover span { opacity: 0.8; }
+.ob-forgot {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  text-align: right;
+  margin-top: -4px;
+  display: block;
+  transition: opacity 0.2s;
+}
+.ob-forgot:hover { opacity: 0.75; }
+
+/* ════════════════════════════════════════
+   STEP 1: WELCOME
+   ════════════════════════════════════════ */
+.ob-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.ob-logo-mark {
+  width: 26px;
+  height: 26px;
+  background: var(--sb-logo-bg);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sb-logo-fg);
+  flex-shrink: 0;
+  transition: background 0.3s, color 0.3s;
+}
+.ob-wordmark {
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--font-serif);
+  color: var(--text-1);
+  letter-spacing: -0.01em;
+  transition: color 0.3s;
+}
+#step-12 .ob-wordmark { font-size: 17px; font-weight: 400; color: var(--text-3); letter-spacing: 0.02em; }
+
+.ob-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 40px 0 32px;
+}
+.ob-icon-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+.ob-icon-glow {
+  position: absolute;
+  inset: -12px;
+  background: radial-gradient(circle, var(--accent-bg) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+.ob-icon-bg {
+  width: 88px;
+  height: 88px;
+  border-radius: 26px;
+  background: var(--card-bg);
+  border: 0.5px solid var(--border);
+  box-shadow: var(--card-sh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: var(--z-base);
+}
+.ob-icon-bg i { font-size: 38px; color: var(--accent); }
+
+.ob-features {
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border-radius: 20px;
+  border: 0.5px solid var(--border);
+  box-shadow: var(--card-sh);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.ob-feat-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 0.5px solid var(--sub-divider);
+}
+.ob-feat-row:last-child { border-bottom: none; }
+.ob-feat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ob-feat-icon i { font-size: 18px; }
+.ob-feat-icon.log   { background: var(--accent-bg); border: 0.5px solid var(--accent-bdr); }
+.ob-feat-icon.log i { color: var(--accent); }
+.ob-feat-icon.learn { background: var(--feat-know-bg); border: 0.5px solid rgba(45,106,79,0.18); }
+.ob-feat-icon.learn i { color: var(--feat-know-fg); }
+.ob-feat-icon.grow  { background: var(--feat-life-bg); border: 0.5px solid rgba(61,107,232,0.18); }
+.ob-feat-icon.grow i { color: var(--feat-life-fg); }
+.ob-feat-title { font-size: 13px; font-weight: 500; color: var(--text-1); margin-bottom: 2px; }
+.ob-feat-desc  { font-size: 12px; color: var(--text-3); line-height: 1.4; }
+
+/* ════════════════════════════════════════
+   STEP 2: AUTH MODE TABS
+   ════════════════════════════════════════ */
+.ob-mode-tabs {
+  display: flex;
+  background: var(--input-bg);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 2px;
+  margin-bottom: 28px;
+}
+.ob-mode-tab {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.25s var(--ease-spring);
+}
+.ob-mode-tab:active { transform: scale(0.97); }
+.ob-mode-tab.active {
+  background: var(--card-bg);
+  color: var(--text-1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 0.5px var(--border);
+}
+
+.ob-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0;
+}
+.ob-divider-line { flex: 1; height: 0.5px; background: var(--border); }
+.ob-divider-text {
+  font-size: 11px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+
+.ob-social-row { display: flex; gap: 10px; }
+.ob-social-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 0.5px solid var(--border);
+  background: var(--card-bg);
+  box-shadow: var(--card-sh);
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-1);
+  transition: all 0.25s var(--ease-spring);
+}
+.ob-social-btn:hover  { border-color: var(--border-hov); transform: translateY(-1px); box-shadow: var(--hero-hov-sh); }
+.ob-social-btn:active { transform: scale(0.97) translateY(0); }
+.ob-social-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ob-social-btn i { font-size: 18px; }
+.ob-social-btn.google i { color: #EA4335; }
+.ob-social-btn.apple i  { color: var(--text-1); }
+
+.ob-bottom-link {
+  padding-bottom: 32px;
+  padding-top: 20px;
+}
+
+/* ════════════════════════════════════════
+   STEP 3: TRIAL FEATURES CARD
+   ════════════════════════════════════════ */
+.ob-trial-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--accent-bg);
+  border: 0.5px solid var(--accent-bdr);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.ob-trial-badge i { font-size: 12px; }
+
+/* inside heading block on step 12 */
+#step-12 .ob-trial-badge {
+  border-radius: 999px;
+  margin-bottom: 0;
+  margin-top: 12px;
+  letter-spacing: 0.02em;
+  font-size: 11px;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.ob-features-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  box-shadow: var(--card-sh);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.ob-feature-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 0.5px solid var(--sub-divider);
+  transition: background 0.2s;
+}
+.ob-feature-row:last-child { border-bottom: none; }
+.ob-feature-row:hover { background: var(--input-bg); }
+.ob-feature-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ob-feature-icon i { font-size: 18px; }
+.ob-feature-icon.accent  { background: var(--accent-bg); }
+.ob-feature-icon.accent i { color: var(--accent); }
+.ob-feature-icon.know    { background: var(--feat-know-bg); }
+.ob-feature-icon.know i  { color: var(--feat-know-fg); }
+.ob-feature-icon.life    { background: var(--feat-life-bg); }
+.ob-feature-icon.life i  { color: var(--feat-life-fg); }
+.ob-feature-icon.fin     { background: var(--feat-fin-bg); }
+.ob-feature-icon.fin i   { color: var(--feat-fin-fg); }
+.ob-feature-text  { flex: 1; min-width: 0; }
+.ob-feature-title { font-size: 13px; font-weight: 500; color: var(--text-1); margin-bottom: 1px; line-height: 1.3; }
+.ob-feature-sub   { font-size: 11px; color: var(--text-3); line-height: 1.4; }
+.ob-feature-check {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent-bg); border: 0.5px solid var(--accent-bdr);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ob-feature-check i { font-size: 10px; color: var(--accent); }
+
+.ob-social-proof { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); margin-bottom: 24px; }
+.ob-proof-avatars { display: flex; align-items: center; }
+.ob-proof-avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid var(--app-bg); background: var(--accent-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 600; color: var(--accent);
+  margin-left: -6px; flex-shrink: 0;
+}
+.ob-proof-avatar:first-child { margin-left: 0; }
+.ob-proof-avatar.alt-1 { background: var(--feat-know-bg); color: var(--feat-know-fg); }
+.ob-proof-avatar.alt-2 { background: var(--feat-life-bg); color: var(--feat-life-fg); }
+.ob-proof-text { line-height: 1.4; }
+.ob-proof-text strong { color: var(--text-2); font-weight: 500; }
+
+/* ════════════════════════════════════════
+   PILL COMPONENTS (shared: grid & list)
+   ════════════════════════════════════════ */
+
+/* Base pill */
+.ob-pill {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s var(--ease-spring),
+              border-color 0.2s var(--ease-spring),
+              color 0.2s var(--ease-spring),
+              transform 0.15s var(--ease-spring),
+              opacity 0.2s;
+}
+.ob-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* List-style pill (step 6 gender) */
+.ob-pill-group { display: flex; flex-direction: column; gap: 8px; }
+.ob-pill-group .ob-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--card-bg);
+  border: 0.5px solid var(--border);
+  box-shadow: var(--card-sh);
+}
+.ob-pill-group .ob-pill:hover { background: var(--input-bg); border-color: var(--border-hov); }
+.ob-pill-group .ob-pill:active { transform: scale(0.98); }
+.ob-pill-group .ob-pill[aria-pressed="true"] {
+  background: var(--accent-bg);
+  border-color: var(--accent-bdr);
+  box-shadow: 0 0 0 1px var(--accent-bdr), var(--card-sh);
+}
+.ob-pill-group .ob-pill[aria-pressed="true"] .ob-pill-label { color: var(--accent); font-weight: 500; }
+.ob-pill-label { font-size: 14px; color: var(--text-1); line-height: 1.3; transition: color 0.2s; }
+.ob-pill-check {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid var(--border-hov);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: background 0.2s var(--ease-spring), border-color 0.2s var(--ease-spring);
+}
+.ob-pill-check i { font-size: 11px; color: transparent; transition: color 0.15s; }
+.ob-pill-group .ob-pill[aria-pressed="true"] .ob-pill-check { background: var(--accent); border-color: var(--accent); }
+.ob-pill-group .ob-pill[aria-pressed="true"] .ob-pill-check i { color: #fff; }
+
+/* Grid-style pill (steps 8–11) */
+.ob-pill-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.ob-pill-grid .ob-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--card-bg);
+  border: 0.5px solid var(--border);
+  box-shadow: var(--card-sh);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--text-1);
+}
+.ob-pill-grid .ob-pill:hover { background: var(--input-bg); border-color: var(--border-hov); }
+.ob-pill-grid .ob-pill:active { transform: scale(0.96); }
+.ob-pill-grid .ob-pill[aria-pressed="true"] {
+  background: var(--accent-bg);
+  border-color: var(--accent-bdr);
+  color: var(--accent);
+  font-weight: 500;
+  box-shadow: 0 0 0 1px var(--accent-bdr), var(--card-sh);
+}
+.ob-pill-grid .ob-pill.dimmed { opacity: 0.38; pointer-events: none; }
+
+/* Exclusive pill (step 11 "No idea yet") */
+.ob-pill.exclusive {
+  width: 100%;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--text-2);
+}
+.ob-pill.exclusive:hover { border-color: var(--border-hov); color: var(--text-1); }
+.ob-pill.exclusive[aria-pressed="true"] { border-style: solid; color: var(--accent); }
+
+/* Pill separator */
+.ob-pill-divider { width: 100%; height: 0.5px; background: var(--sub-divider); margin: 4px 0; }
+
+/* Animated dot inside grid pills */
+.ob-pill-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  flex-shrink: 0; opacity: 0; transform: scale(0);
+  transition: opacity 0.15s, transform 0.2s var(--ease-spring);
+}
+.ob-pill-grid .ob-pill[aria-pressed="true"] .ob-pill-dot { opacity: 1; transform: scale(1); }
+
+/* Counter row */
+.ob-counter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+.ob-counter { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; transition: color 0.2s; }
+.ob-counter.at-limit { color: var(--accent); font-weight: 500; }
+.ob-counter-pips { display: flex; gap: 4px; }
+.ob-pip {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--border);
+  transition: background 0.25s var(--ease-spring), transform 0.2s var(--ease-spring);
+}
+.ob-pip.filled { background: var(--accent); }
+.ob-pip.bump   { animation: bump 0.25s var(--ease-spring); }
+
+/* "Other" reveal */
+.ob-other-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s var(--ease-spring);
+}
+.ob-other-reveal.open { grid-template-rows: 1fr; margin-top: 8px; }
+.ob-other-inner { overflow: hidden; }
+
+/* ════════════════════════════════════════
+   STEP 12: CELEBRATION & SUMMARY
+   ════════════════════════════════════════ */
+.ob-icon-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 40px 0 32px;
+}
+.ob-icon-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+}
+.ob-icon-ring::before, .ob-icon-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  animation: ring-pulse 2.4s var(--ease-spring) 0.5s infinite;
+}
+.ob-icon-ring::after { animation-delay: 1.2s; }
+.ob-icon-circle {
+  position: relative;
+  z-index: var(--z-base);
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--accent-bg);
+  border: 1.5px solid var(--accent-bdr);
+  display: flex; align-items: center; justify-content: center;
+  animation: icon-pop 0.55s var(--ease-spring) 0.1s both;
+}
+.ob-icon-circle i { font-size: 30px; color: var(--accent); }
+
+.ob-summary-card {
+  background: var(--card-bg);
+  border: 0.5px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--card-sh);
+  overflow: hidden;
+}
+.ob-summary-section { padding: 16px 18px; }
+.ob-summary-section + .ob-summary-section { border-top: 0.5px solid var(--sub-divider); }
+.ob-summary-header { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+.ob-summary-header i { font-size: 14px; color: var(--accent); }
+.ob-summary-label {
+  font-size: 10px; font-weight: 500; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.1em; flex: 1;
+}
+.ob-summary-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.ob-summary-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--input-bg);
+  font-size: 11.5px;
+  color: var(--text-2);
+  border: 0.5px solid var(--border);
+}
+.ob-summary-pill.accent {
+  background: var(--accent-bg);
+  border-color: var(--accent-bdr);
+  color: var(--accent);
+  font-weight: 500;
+}
+.ob-summary-empty { font-size: 12px; color: var(--text-3); font-style: italic; }
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     STEP 1: WELCOME
+     ════════════════════════════════════════ -->
+<div class="ob-step active" id="step-1">
+
+  <header class="ob-logo-row">
+    <div class="ob-logo-mark">N</div>
+    <span class="ob-wordmark">Nook</span>
+  </header>
+
+  <section class="ob-hero">
+    <div class="ob-icon-wrap">
+      <div class="ob-icon-glow"></div>
+      <div class="ob-icon-bg">
+        <i class="ph-bold ph-compass-rose"></i>
+      </div>
+    </div>
+    <h1 class="ob-headline" style="font-size:30px;">Your corner to log, learn and grow.</h1>
+    <p class="ob-subtext" style="color:var(--text-2);">One place for finances, knowledge, habits and goals.</p>
+  </section>
+
+  <div class="ob-features">
+    <div class="ob-feat-row">
+      <div class="ob-feat-icon log"><i class="ph-bold ph-pencil-simple"></i></div>
+      <div class="ob-feat-text">
+        <div class="ob-feat-title">Log</div>
+        <div class="ob-feat-desc">Track spending, habits, moods and meals daily.</div>
+      </div>
+    </div>
+    <div class="ob-feat-row">
+      <div class="ob-feat-icon learn"><i class="ph-bold ph-books"></i></div>
+      <div class="ob-feat-text">
+        <div class="ob-feat-title">Learn</div>
+        <div class="ob-feat-desc">Stay sharp with curated news, words and concepts.</div>
+      </div>
+    </div>
+    <div class="ob-feat-row">
+      <div class="ob-feat-icon grow"><i class="ph-bold ph-trend-up"></i></div>
+      <div class="ob-feat-text">
+        <div class="ob-feat-title">Grow</div>
+        <div class="ob-feat-desc">Build goals, streaks and a richer financial picture.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" onclick="goToStep(2)">
+      Get started
+      <i class="ph-bold ph-arrow-right"></i>
+    </button>
+    <button type="button" class="ob-signin-link" style="background:none;border:none;cursor:pointer;" onclick="goToStep(2)">
+      Already have an account? <span>Sign in</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 2: AUTH
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-2">
+
+  <nav class="ob-topnav">
+    <button type="button" class="ob-back-btn" aria-label="Go back" onclick="goToStep(1)">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+  </nav>
+
+  <div class="ob-heading-block">
+    <h1 class="ob-headline" id="s2-headline">Welcome back.</h1>
+    <p class="ob-subtext" id="s2-subtext">Sign in to your Nook account.</p>
+  </div>
+
+  <div class="ob-mode-tabs" role="tablist">
+    <button class="ob-mode-tab active" id="s2-tab-signin" role="tab" onclick="s2SwitchMode('signin')">Sign in</button>
+    <button class="ob-mode-tab"        id="s2-tab-signup" role="tab" onclick="s2SwitchMode('signup')">Create account</button>
+  </div>
+
+  <form class="ob-form" id="s2-form" onsubmit="s2Submit(event)" novalidate>
+
+    <div class="ob-field" id="s2-username-field" style="display:none;">
+      <label class="ob-field-label" for="s2-username">Username</label>
+      <div class="ob-input-wrap">
+        <input class="ob-input" type="text" id="s2-username" name="username" placeholder="alexlewis" autocomplete="username">
+      </div>
+    </div>
+
+    <div class="ob-field" id="s2-dob-field" style="display:none;">
+      <label class="ob-field-label" for="s2-dob">Date of birth</label>
+      <div class="ob-input-wrap">
+        <input class="ob-input" type="date" id="s2-dob" name="dob">
+      </div>
+    </div>
+
+    <div class="ob-field" id="s2-email-field">
+      <label class="ob-field-label" for="s2-email">Email</label>
+      <div class="ob-input-wrap">
+        <input class="ob-input" type="email" id="s2-email" name="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+    </div>
+
+    <div class="ob-field">
+      <label class="ob-field-label" for="s2-password">Password</label>
+      <div class="ob-input-wrap">
+        <input class="ob-input has-action" type="password" id="s2-password" name="password" placeholder="••••••••" autocomplete="current-password">
+        <button type="button" class="ob-input-action" onclick="s2TogglePw()" aria-label="Show password">
+          <i class="ph-bold ph-eye" id="s2-pw-icon"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="ob-field" id="s2-confirm-pw-field" style="display:none;">
+      <label class="ob-field-label" for="s2-confirm-pw">Confirm password</label>
+      <div class="ob-input-wrap">
+        <input class="ob-input has-action" type="password" id="s2-confirm-pw" name="confirm-password" placeholder="••••••••" autocomplete="new-password">
+        <button type="button" class="ob-input-action" onclick="s2ToggleCpw()" aria-label="Show password">
+          <i class="ph-bold ph-eye" id="s2-cpw-icon"></i>
+        </button>
+      </div>
+    </div>
+
+    <a href="#" class="ob-forgot" id="s2-forgot">Forgot password?</a>
+
+    <button type="submit" class="ob-submit-btn" id="s2-submit">Sign in</button>
+  </form>
+
+  <div class="ob-divider">
+    <div class="ob-divider-line"></div>
+    <span class="ob-divider-text">or continue with</span>
+    <div class="ob-divider-line"></div>
+  </div>
+
+  <div class="ob-social-row">
+    <button type="button" class="ob-social-btn google"><i class="ph-bold ph-google-logo"></i> Google</button>
+    <button type="button" class="ob-social-btn apple"><i class="ph-bold ph-apple-logo"></i> Apple</button>
+  </div>
+
+  <button type="button" class="ob-bottom-link" id="s2-bottom-link"
+    style="background:none;border:none;cursor:pointer;margin-top:auto;"
+    onclick="s2SwitchMode('signup')">
+    New here? <span>Create account</span>
+  </button>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 3: FREE TRIAL
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-3">
+
+  <nav class="ob-topnav">
+    <button type="button" class="ob-back-btn" aria-label="Go back" onclick="goToStep(2)">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+  </nav>
+
+  <div class="ob-trial-badge">
+    <i class="ph-bold ph-sparkle"></i>
+    Free 7-day trial · No card needed
+  </div>
+
+  <div class="ob-heading-block">
+    <h1 class="ob-headline">Grow with intention.<br>Every single day.</h1>
+    <p class="ob-subtext">Cancel anytime.</p>
+  </div>
+
+  <div class="ob-features-card" role="list">
+    <div class="ob-feature-row" role="listitem">
+      <div class="ob-feature-icon accent"><i class="ph-bold ph-brain"></i></div>
+      <div class="ob-feature-text">
+        <div class="ob-feature-title">AI Coach</div>
+        <div class="ob-feature-sub">Personalized nudges based on your goals and habits</div>
+      </div>
+      <div class="ob-feature-check"><i class="ph-bold ph-check"></i></div>
+    </div>
+    <div class="ob-feature-row" role="listitem">
+      <div class="ob-feature-icon know"><i class="ph-bold ph-chart-line-up"></i></div>
+      <div class="ob-feature-text">
+        <div class="ob-feature-title">Advanced Analytics</div>
+        <div class="ob-feature-sub">Trends, correlations, and weekly progress reports</div>
+      </div>
+      <div class="ob-feature-check"><i class="ph-bold ph-check"></i></div>
+    </div>
+    <div class="ob-feature-row" role="listitem">
+      <div class="ob-feature-icon life"><i class="ph-bold ph-target"></i></div>
+      <div class="ob-feature-text">
+        <div class="ob-feature-title">Custom Goals</div>
+        <div class="ob-feature-sub">Unlimited goal tracking across all life domains</div>
+      </div>
+      <div class="ob-feature-check"><i class="ph-bold ph-check"></i></div>
+    </div>
+    <div class="ob-feature-row" role="listitem">
+      <div class="ob-feature-icon fin"><i class="ph-bold ph-download-simple"></i></div>
+      <div class="ob-feature-text">
+        <div class="ob-feature-title">Export Data</div>
+        <div class="ob-feature-sub">Download your full history as CSV or PDF anytime</div>
+      </div>
+      <div class="ob-feature-check"><i class="ph-bold ph-check"></i></div>
+    </div>
+    <div class="ob-feature-row" role="listitem">
+      <div class="ob-feature-icon fin"><i class="ph-bold ph-chart-bar"></i></div>
+      <div class="ob-feature-text">
+        <div class="ob-feature-title">Stock Sentiment</div>
+        <div class="ob-feature-sub">AI-powered Bullish / Neutral / Bearish signals per ticker</div>
+      </div>
+      <div class="ob-feature-check"><i class="ph-bold ph-check"></i></div>
+    </div>
+    <div class="ob-feature-row" role="listitem">
+      <div class="ob-feature-icon fin"><i class="ph-bold ph-receipt"></i></div>
+      <div class="ob-feature-text">
+        <div class="ob-feature-title">Expense Log</div>
+        <div class="ob-feature-sub">Daily spending tracker with monthly breakdown and trends</div>
+      </div>
+      <div class="ob-feature-check"><i class="ph-bold ph-check"></i></div>
+    </div>
+    <div class="ob-feature-row" role="listitem">
+      <div class="ob-feature-icon accent"><i class="ph-bold ph-headset"></i></div>
+      <div class="ob-feature-text">
+        <div class="ob-feature-title">Priority Support</div>
+        <div class="ob-feature-sub">Fast responses from our team, 7 days a week</div>
+      </div>
+      <div class="ob-feature-check"><i class="ph-bold ph-check"></i></div>
+    </div>
+  </div>
+
+  <div class="ob-social-proof">
+    <div class="ob-proof-avatars" aria-hidden="true">
+      <div class="ob-proof-avatar">AL</div>
+      <div class="ob-proof-avatar alt-1">MK</div>
+      <div class="ob-proof-avatar alt-2">JR</div>
+    </div>
+    <p class="ob-proof-text"><strong>12,400+</strong> people growing with Nook</p>
+  </div>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" onclick="goToStep(4)">
+      <i class="ph-bold ph-arrow-right"></i>
+      Start free trial
+    </button>
+    <button type="button" class="ob-plans-link" style="background:none;border:none;cursor:pointer;" onclick="goToStep(4)">See all plans</button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 4: NAME  (form step 1/9)
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-4">
+
+  <nav class="ob-topnav">
+    <button type="button" class="ob-back-btn" aria-label="Go back" onclick="goToStep(3)">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+    <span class="ob-step-label">Step 1 of 9</span>
+  </nav>
+
+  <div class="ob-progress" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="9" aria-label="Step 1 of 9">
+    <div class="ob-prog-seg active"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+  </div>
+
+  <div class="ob-heading-block">
+    <h1 class="ob-headline">What should we<br>call you?</h1>
+    <p class="ob-subtext">This is how we'll greet you inside Nook.</p>
+  </div>
+
+  <form class="ob-form" id="s4-form" novalidate>
+    <div class="ob-field">
+      <label class="ob-field-label" for="s4-first">First name</label>
+      <input class="ob-input" type="text" id="s4-first" name="first-name" placeholder="Alex" autocomplete="given-name" autocapitalize="words" required>
+    </div>
+    <div class="ob-field">
+      <label class="ob-field-label" for="s4-last">Last name</label>
+      <input class="ob-input" type="text" id="s4-last" name="last-name" placeholder="Lewis" autocomplete="family-name" autocapitalize="words">
+    </div>
+  </form>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" id="s4-continue" onclick="s4Next()" aria-disabled="true">
+      Continue
+      <i class="ph-bold ph-arrow-right"></i>
+    </button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 5: EMAIL  (form step 2/9)
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-5">
+
+  <nav class="ob-topnav">
+    <button type="button" class="ob-back-btn" aria-label="Go back" onclick="goToStep(4)">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+    <span class="ob-step-label">Step 2 of 9</span>
+  </nav>
+
+  <div class="ob-progress" role="progressbar" aria-valuenow="2" aria-valuemin="1" aria-valuemax="9" aria-label="Step 2 of 9">
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg active"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+    <div class="ob-prog-seg"></div>
+  </div>
+
+  <div class="ob-heading-block">
+    <h1 class="ob-headline">Where should we<br>reach you?</h1>
+    <p class="ob-subtext">We'll send your progress reports here.</p>
+  </div>
+
+  <form class="ob-form" id="s5-form" novalidate>
+    <div class="ob-field" id="s5-field-email">
+      <label class="ob-field-label" for="s5-email">Email address</label>
+      <div class="ob-input-wrap">
+        <input class="ob-input" type="email" id="s5-email" name="email" placeholder="alex@example.com" autocomplete="email" inputmode="email" required>
+        <span class="ob-input-status" id="s5-status-email" aria-hidden="true"><i class="ph-bold ph-check-circle"></i></span>
+      </div>
+      <span class="ob-field-error" id="s5-error-email" role="alert">Enter a valid email address.</span>
+    </div>
+    <div class="ob-field" id="s5-field-confirm">
+      <label class="ob-field-label" for="s5-confirm">Confirm email</label>
+      <div class="ob-input-wrap">
+        <input class="ob-input" type="email" id="s5-confirm" name="confirm-email" placeholder="alex@example.com" autocomplete="email" inputmode="email" required>
+        <span class="ob-input-status" id="s5-status-confirm" aria-hidden="true"><i class="ph-bold ph-check-circle"></i></span>
+      </div>
+      <span class="ob-field-error" id="s5-error-confirm" role="alert">Emails don't match.</span>
+    </div>
+    <div class="ob-privacy-note" role="note">
+      <i class="ph-bold ph-lock-simple"></i>
+      <p>We'll never share your email. Used only for account access and weekly summaries.</p>
+    </div>
+  </form>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" id="s5-continue" onclick="s5Next()" aria-disabled="true">
+      Continue
+      <i class="ph-bold ph-arrow-right"></i>
+    </button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 6: GENDER  (form step 3/9)
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-6">
+
+  <nav class="ob-topnav">
+    <button type="button" class="ob-back-btn" aria-label="Go back" onclick="goToStep(5)">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+    <span class="ob-step-label">Step 3 of 9</span>
+  </nav>
+
+  <div class="ob-progress" role="progressbar" aria-valuenow="3" aria-valuemin="1" aria-valuemax="9" aria-label="Step 3 of 9">
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg active"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+  </div>
+
+  <div class="ob-heading-block">
+    <h1 class="ob-headline">How do you identify?</h1>
+    <p class="ob-subtext">Optional — helps us personalise your experience.</p>
+  </div>
+
+  <div class="ob-pill-group" role="group" aria-label="Gender identity" id="s6-pills">
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="man" style="--i:0">
+      <span class="ob-pill-label">Man</span>
+      <span class="ob-pill-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+    </button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="woman" style="--i:1">
+      <span class="ob-pill-label">Woman</span>
+      <span class="ob-pill-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+    </button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="non-binary" style="--i:2">
+      <span class="ob-pill-label">Non-binary</span>
+      <span class="ob-pill-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+    </button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="prefer-not" style="--i:3">
+      <span class="ob-pill-label">Prefer not to say</span>
+      <span class="ob-pill-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+    </button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="other" style="--i:4">
+      <span class="ob-pill-label">Other</span>
+      <span class="ob-pill-check" aria-hidden="true"><i class="ph-bold ph-check"></i></span>
+    </button>
+  </div>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" onclick="goToStep(7)">
+      Continue
+      <i class="ph-bold ph-arrow-right"></i>
+    </button>
+    <button type="button" class="ob-skip-link" style="background:none;border:none;cursor:pointer;" onclick="goToStep(7)">Skip for now</button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 7: LOCATION  (form step 4/9)
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-7">
+
+  <nav class="ob-topnav">
+    <button type="button" class="ob-back-btn" aria-label="Go back" onclick="goToStep(6)">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+    <span class="ob-step-label">Step 4 of 9</span>
+  </nav>
+
+  <div class="ob-progress" role="progressbar" aria-valuenow="4" aria-valuemin="1" aria-valuemax="9" aria-label="Step 4 of 9">
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg active"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+  </div>
+
+  <div class="ob-heading-block">
+    <h1 class="ob-headline">Where are you based?</h1>
+    <p class="ob-subtext">Helps us surface relevant content and local time zones.</p>
+  </div>
+
+  <form class="ob-form" id="s7-form" novalidate>
+    <div class="ob-field">
+      <label class="ob-field-label" for="s7-country">Country</label>
+      <input class="ob-input" type="text" id="s7-country" name="country" placeholder="United States" autocomplete="country-name" autocapitalize="words">
+    </div>
+    <div class="ob-field">
+      <label class="ob-field-label" for="s7-city">City</label>
+      <input class="ob-input" type="text" id="s7-city" name="city" placeholder="San Francisco" autocomplete="address-level2" autocapitalize="words" required>
+    </div>
+    <div class="ob-form-row">
+      <div class="ob-field">
+        <label class="ob-field-label" for="s7-state">State</label>
+        <input class="ob-input" type="text" id="s7-state" name="state" placeholder="CA" autocomplete="address-level1" autocapitalize="characters" maxlength="2">
+      </div>
+      <div class="ob-field">
+        <label class="ob-field-label" for="s7-zip">ZIP code</label>
+        <input class="ob-input" type="text" id="s7-zip" name="zip" placeholder="94103" autocomplete="postal-code" inputmode="numeric" maxlength="10">
+      </div>
+    </div>
+  </form>
+
+  <div class="ob-privacy-note" role="note" style="margin-top:4px;">
+    <i class="ph-bold ph-map-pin"></i>
+    <p>Your location is never shared publicly. Used only for personalisation.</p>
+  </div>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" id="s7-continue" onclick="s7Next()" aria-disabled="true">
+      Continue
+      <i class="ph-bold ph-arrow-right"></i>
+    </button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 8: FIELD  (form step 5/9)
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-8">
+
+  <nav class="ob-topnav">
+    <button type="button" class="ob-back-btn" aria-label="Go back" onclick="goToStep(7)">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+    <span class="ob-step-label">Step 5 of 9</span>
+  </nav>
+
+  <div class="ob-progress" role="progressbar" aria-valuenow="5" aria-valuemin="1" aria-valuemax="9" aria-label="Step 5 of 9">
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg active"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+    <div class="ob-prog-seg"></div>
+  </div>
+
+  <div class="ob-heading-block" style="margin-bottom:28px;">
+    <h1 class="ob-headline">What's your field?</h1>
+    <p class="ob-subtext">We'll tailor your financial and knowledge content.</p>
+  </div>
+
+  <div class="ob-pill-grid" role="group" aria-label="Professional field" id="s8-pills">
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="technology"><span class="ob-pill-dot" aria-hidden="true"></span>Technology</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="finance"><span class="ob-pill-dot" aria-hidden="true"></span>Finance</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="healthcare"><span class="ob-pill-dot" aria-hidden="true"></span>Healthcare</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="education"><span class="ob-pill-dot" aria-hidden="true"></span>Education</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="law"><span class="ob-pill-dot" aria-hidden="true"></span>Law</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="marketing"><span class="ob-pill-dot" aria-hidden="true"></span>Marketing</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="design"><span class="ob-pill-dot" aria-hidden="true"></span>Design</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="engineering"><span class="ob-pill-dot" aria-hidden="true"></span>Engineering</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="science"><span class="ob-pill-dot" aria-hidden="true"></span>Science</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="business"><span class="ob-pill-dot" aria-hidden="true"></span>Business</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="arts"><span class="ob-pill-dot" aria-hidden="true"></span>Arts</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="government"><span class="ob-pill-dot" aria-hidden="true"></span>Government</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="other" id="s8-pill-other"><span class="ob-pill-dot" aria-hidden="true"></span>Other</button>
+  </div>
+
+  <div class="ob-other-reveal" id="s8-other-reveal" aria-hidden="true">
+    <div class="ob-other-inner">
+      <label class="ob-field-label" for="s8-other-input" style="margin-top:4px;">Your field</label>
+      <input class="ob-input" type="text" id="s8-other-input" name="other-field" placeholder="e.g. Architecture, Real Estate…" autocapitalize="words" tabindex="-1">
+    </div>
+  </div>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" id="s8-continue" onclick="s8Next()" aria-disabled="true">
+      Continue
+      <i class="ph-bold ph-arrow-right"></i>
+    </button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 9: TOPICS  (form step 6/9)
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-9">
+
+  <nav class="ob-topnav">
+    <button type="button" class="ob-back-btn" aria-label="Go back" onclick="goToStep(8)">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+    <span class="ob-step-label">Step 6 of 9</span>
+  </nav>
+
+  <div class="ob-progress" role="progressbar" aria-valuenow="6" aria-valuemin="1" aria-valuemax="9" aria-label="Step 6 of 9">
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg active"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+  </div>
+
+  <div class="ob-heading-block" style="margin-bottom:24px;">
+    <h1 class="ob-headline">What topics interest you?</h1>
+    <p class="ob-subtext">Pick up to 5 — drives your daily news feed.</p>
+  </div>
+
+  <div class="ob-pill-grid" role="group" aria-label="Topics of interest" id="s9-pills">
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="ai-technology"><span class="ob-pill-dot" aria-hidden="true"></span>AI &amp; Technology</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="business-markets"><span class="ob-pill-dot" aria-hidden="true"></span>Business &amp; Markets</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="geopolitics"><span class="ob-pill-dot" aria-hidden="true"></span>Geopolitics</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="health-medicine"><span class="ob-pill-dot" aria-hidden="true"></span>Health &amp; Medicine</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="science-space"><span class="ob-pill-dot" aria-hidden="true"></span>Science &amp; Space</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="environment"><span class="ob-pill-dot" aria-hidden="true"></span>Environment</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="culture-society"><span class="ob-pill-dot" aria-hidden="true"></span>Culture &amp; Society</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="sports"><span class="ob-pill-dot" aria-hidden="true"></span>Sports</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="law-policy"><span class="ob-pill-dot" aria-hidden="true"></span>Law &amp; Policy</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="psychology"><span class="ob-pill-dot" aria-hidden="true"></span>Psychology</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="philosophy"><span class="ob-pill-dot" aria-hidden="true"></span>Philosophy</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="history"><span class="ob-pill-dot" aria-hidden="true"></span>History</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="economics"><span class="ob-pill-dot" aria-hidden="true"></span>Economics</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="design"><span class="ob-pill-dot" aria-hidden="true"></span>Design</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="finance"><span class="ob-pill-dot" aria-hidden="true"></span>Finance</button>
+  </div>
+
+  <div class="ob-counter-row">
+    <span class="ob-counter" id="s9-counter" aria-live="polite" aria-atomic="true">0 of 5 selected</span>
+    <div class="ob-counter-pips" aria-hidden="true">
+      <div class="ob-pip" id="s9-pip-0"></div><div class="ob-pip" id="s9-pip-1"></div>
+      <div class="ob-pip" id="s9-pip-2"></div><div class="ob-pip" id="s9-pip-3"></div>
+      <div class="ob-pip" id="s9-pip-4"></div>
+    </div>
+  </div>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" id="s9-continue" aria-disabled="true">
+      Continue
+      <i class="ph-bold ph-arrow-right"></i>
+    </button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 10: LEARN  (form step 7/9)
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-10">
+
+  <nav class="ob-topnav">
+    <button type="button" class="ob-back-btn" aria-label="Go back" onclick="goToStep(9)">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+    <span class="ob-step-label">Step 7 of 9</span>
+  </nav>
+
+  <div class="ob-progress" role="progressbar" aria-valuenow="7" aria-valuemin="1" aria-valuemax="9" aria-label="Step 7 of 9">
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg active"></div>
+    <div class="ob-prog-seg"></div><div class="ob-prog-seg"></div>
+  </div>
+
+  <div class="ob-heading-block" style="margin-bottom:24px;">
+    <h1 class="ob-headline">What do you want to learn?</h1>
+    <p class="ob-subtext">Shapes your Concept of the Day, Deep Dives and reading list.</p>
+  </div>
+
+  <div class="ob-pill-grid" role="group" aria-label="Learning interests" id="s10-pills">
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="personal-development"><span class="ob-pill-dot" aria-hidden="true"></span>Personal Development</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="philosophy"><span class="ob-pill-dot" aria-hidden="true"></span>Philosophy</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="psychology"><span class="ob-pill-dot" aria-hidden="true"></span>Psychology</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="history"><span class="ob-pill-dot" aria-hidden="true"></span>History</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="economics"><span class="ob-pill-dot" aria-hidden="true"></span>Economics</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="leadership"><span class="ob-pill-dot" aria-hidden="true"></span>Leadership</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="science"><span class="ob-pill-dot" aria-hidden="true"></span>Science</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="writing"><span class="ob-pill-dot" aria-hidden="true"></span>Writing</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="technology-ai"><span class="ob-pill-dot" aria-hidden="true"></span>Technology &amp; AI</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="creativity"><span class="ob-pill-dot" aria-hidden="true"></span>Creativity</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="ethics-society"><span class="ob-pill-dot" aria-hidden="true"></span>Ethics &amp; Society</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="entrepreneurship"><span class="ob-pill-dot" aria-hidden="true"></span>Entrepreneurship</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="stoicism"><span class="ob-pill-dot" aria-hidden="true"></span>Stoicism</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="productivity"><span class="ob-pill-dot" aria-hidden="true"></span>Productivity</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="investing"><span class="ob-pill-dot" aria-hidden="true"></span>Investing</button>
+  </div>
+
+  <div class="ob-counter-row">
+    <span class="ob-counter" id="s10-counter" aria-live="polite" aria-atomic="true">0 of 5 selected</span>
+    <div class="ob-counter-pips" aria-hidden="true">
+      <div class="ob-pip" id="s10-pip-0"></div><div class="ob-pip" id="s10-pip-1"></div>
+      <div class="ob-pip" id="s10-pip-2"></div><div class="ob-pip" id="s10-pip-3"></div>
+      <div class="ob-pip" id="s10-pip-4"></div>
+    </div>
+  </div>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" id="s10-continue" aria-disabled="true">
+      Continue
+      <i class="ph-bold ph-arrow-right"></i>
+    </button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 11: FINANCE  (form step 8/9)
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-11">
+
+  <nav class="ob-topnav">
+    <button type="button" class="ob-back-btn" aria-label="Go back" onclick="goToStep(10)">
+      <i class="ph-bold ph-arrow-left"></i>
+    </button>
+    <span class="ob-step-label">Step 8 of 9</span>
+  </nav>
+
+  <div class="ob-progress" role="progressbar" aria-valuenow="8" aria-valuemin="1" aria-valuemax="9" aria-label="Step 8 of 9">
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg done"></div>
+    <div class="ob-prog-seg done"></div><div class="ob-prog-seg active"></div>
+    <div class="ob-prog-seg"></div>
+  </div>
+
+  <div class="ob-heading-block">
+    <h1 class="ob-headline">What financial instruments<br>interest you?</h1>
+    <p class="ob-subtext">We'll personalise your Financial dashboard.</p>
+  </div>
+
+  <div class="ob-pill-grid" role="group" aria-label="Financial instruments" id="s11-pills">
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="stocks"><span class="ob-pill-dot" aria-hidden="true"></span>Stocks</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="etfs"><span class="ob-pill-dot" aria-hidden="true"></span>ETFs</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="reits"><span class="ob-pill-dot" aria-hidden="true"></span>REITs</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="real-estate"><span class="ob-pill-dot" aria-hidden="true"></span>Real Estate</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="crypto"><span class="ob-pill-dot" aria-hidden="true"></span>Crypto</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="bonds"><span class="ob-pill-dot" aria-hidden="true"></span>Bonds</button>
+    <button class="ob-pill" type="button" aria-pressed="false" data-value="index-funds"><span class="ob-pill-dot" aria-hidden="true"></span>Index Funds</button>
+    <div class="ob-pill-divider" role="separator" aria-hidden="true"></div>
+    <button class="ob-pill exclusive" type="button" aria-pressed="false" data-value="no-idea" id="s11-no-idea">
+      <span class="ob-pill-dot" aria-hidden="true"></span>No idea yet
+    </button>
+  </div>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" id="s11-continue" aria-disabled="true">
+      Continue
+      <i class="ph-bold ph-arrow-right"></i>
+    </button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     STEP 12: READY  (form step 9/9)
+     ════════════════════════════════════════ -->
+<div class="ob-step" id="step-12">
+
+  <nav class="ob-topnav">
+    <span class="ob-wordmark">Nook</span>
+  </nav>
+
+  <div class="ob-icon-area">
+    <div class="ob-icon-ring">
+      <div class="ob-icon-circle">
+        <i class="ph-bold ph-check"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="ob-heading-block">
+    <h1 class="ob-headline">Your Nook is ready.</h1>
+    <p class="ob-subtext" id="s12-greeting">Your corner is set up. A 7-day Pro trial is active — no card needed.</p>
+    <div class="ob-trial-badge">
+      <i class="ph-bold ph-star"></i>
+      Pro trial active · 7 days free
+    </div>
+  </div>
+
+  <div class="ob-summary-card">
+
+    <div class="ob-summary-section">
+      <div class="ob-summary-header">
+        <i class="ph-bold ph-newspaper"></i>
+        <span class="ob-summary-label">News topics</span>
+      </div>
+      <div class="ob-summary-pills" id="s12-topics-pills">
+        <span class="ob-summary-empty">No topics selected</span>
+      </div>
+    </div>
+
+    <div class="ob-summary-section">
+      <div class="ob-summary-header">
+        <i class="ph-bold ph-books"></i>
+        <span class="ob-summary-label">Learning interests</span>
+      </div>
+      <div class="ob-summary-pills" id="s12-learn-pills">
+        <span class="ob-summary-empty">No interests selected</span>
+      </div>
+    </div>
+
+    <div class="ob-summary-section">
+      <div class="ob-summary-header">
+        <i class="ph-bold ph-chart-line-up"></i>
+        <span class="ob-summary-label">Financial interests</span>
+      </div>
+      <div class="ob-summary-pills" id="s12-finance-pills">
+        <span class="ob-summary-empty">No instruments selected</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="ob-cta-area">
+    <button type="button" class="ob-cta-btn" onclick="window.location='nook-v11.html'">
+      Go to my dashboard
+      <i class="ph-bold ph-arrow-right"></i>
+    </button>
+  </div>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════ */
+const state = {
+  name:     { first: '', last: '' },
+  email:    '',
+  gender:   '',
+  location: { city: '', state: '', zip: '' },
+  field:    '',
+  topics:   [],
+  learning: [],
+  finance:  []
+};
+
+let currentStep = 1;
+
+/* ════════════════════════════════════════
+   NAVIGATION
+   ════════════════════════════════════════ */
+function goToStep(n) {
+  saveCurrentStep();
+
+  const oldEl = document.getElementById('step-' + currentStep);
+  const newEl = document.getElementById('step-' + n);
+
+  oldEl.classList.remove('active');
+
+  newEl.classList.remove('active');
+  newEl.style.animation = 'none';
+  newEl.offsetHeight; // reflow to restart animation
+  newEl.style.animation = '';
+  newEl.classList.add('active');
+
+  window.scrollTo(0, 0);
+  currentStep = n;
+
+  // Step-specific post-show
+  if (n === 4)  s4Init();
+  if (n === 5)  s5Init();
+  if (n === 7)  s7Init();
+  if (n === 8)  s8Init();
+  if (n === 12) renderSummary();
+}
+
+/* ════════════════════════════════════════
+   SAVE STATE FROM CURRENT STEP
+   ════════════════════════════════════════ */
+function saveCurrentStep() {
+  const s = currentStep;
+  const el = document.getElementById('step-' + s);
+  if (!el) return;
+
+  if (s === 4) {
+    state.name.first = (el.querySelector('#s4-first') || {}).value?.trim() || state.name.first;
+    state.name.last  = (el.querySelector('#s4-last')  || {}).value?.trim() || state.name.last;
+  } else if (s === 5) {
+    state.email = (el.querySelector('#s5-email') || {}).value?.trim() || state.email;
+  } else if (s === 6) {
+    const sel = el.querySelector('.ob-pill[aria-pressed="true"]');
+    if (sel) state.gender = sel.dataset.value;
+  } else if (s === 7) {
+    state.location.city  = (el.querySelector('#s7-city')  || {}).value?.trim() || '';
+    state.location.state = (el.querySelector('#s7-state') || {}).value?.trim() || '';
+    state.location.zip   = (el.querySelector('#s7-zip')   || {}).value?.trim() || '';
+  } else if (s === 8) {
+    const sel = el.querySelector('#s8-pills .ob-pill[aria-pressed="true"]');
+    if (sel) {
+      state.field = sel.dataset.value === 'other'
+        ? ((el.querySelector('#s8-other-input') || {}).value?.trim() || 'other')
+        : sel.dataset.value;
+    }
+  } else if (s === 9) {
+    const sel = [...el.querySelectorAll('#s9-pills .ob-pill[aria-pressed="true"]')];
+    state.topics = sel.map(p => p.dataset.value);
+  } else if (s === 10) {
+    const sel = [...el.querySelectorAll('#s10-pills .ob-pill[aria-pressed="true"]')];
+    state.learning = sel.map(p => p.dataset.value);
+  } else if (s === 11) {
+    const sel = [...el.querySelectorAll('#s11-pills .ob-pill[aria-pressed="true"]')];
+    state.finance = sel.map(p => p.dataset.value);
+  }
+}
+
+/* ════════════════════════════════════════
+   STEP 2: AUTH
+   ════════════════════════════════════════ */
+let s2Mode = 'signin';
+
+function s2SwitchMode(m) {
+  s2Mode = m;
+  const isSignup = m === 'signup';
+
+  document.getElementById('s2-tab-signin').classList.toggle('active', !isSignup);
+  document.getElementById('s2-tab-signup').classList.toggle('active', isSignup);
+  document.getElementById('s2-headline').textContent = isSignup ? 'Create account.' : 'Welcome back.';
+  document.getElementById('s2-subtext').textContent  = isSignup ? 'Start your Nook journey.' : 'Sign in to your Nook account.';
+  document.getElementById('s2-submit').textContent   = isSignup ? 'Create account' : 'Sign in';
+  document.getElementById('s2-password').autocomplete = isSignup ? 'new-password' : 'current-password';
+
+  document.getElementById('s2-username-field').style.display   = isSignup ? 'flex' : 'none';
+  document.getElementById('s2-dob-field').style.display        = isSignup ? 'flex' : 'none';
+  document.getElementById('s2-email-field').style.display      = isSignup ? 'none' : 'flex';
+  document.getElementById('s2-confirm-pw-field').style.display = isSignup ? 'flex' : 'none';
+  document.getElementById('s2-forgot').style.display           = isSignup ? 'none' : 'block';
+
+  const bl = document.getElementById('s2-bottom-link');
+  if (isSignup) {
+    bl.innerHTML = 'Already have an account? <span>Sign in</span>';
+    bl.onclick = () => s2SwitchMode('signin');
+  } else {
+    bl.innerHTML = 'New here? <span>Create account</span>';
+    bl.onclick = () => s2SwitchMode('signup');
+  }
+}
+
+function s2TogglePw() {
+  const inp  = document.getElementById('s2-password');
+  const icon = document.getElementById('s2-pw-icon');
+  const shown = inp.type === 'text';
+  inp.type = shown ? 'password' : 'text';
+  icon.className = shown ? 'ph-bold ph-eye' : 'ph-bold ph-eye-slash';
+}
+
+function s2ToggleCpw() {
+  const inp  = document.getElementById('s2-confirm-pw');
+  const icon = document.getElementById('s2-cpw-icon');
+  const shown = inp.type === 'text';
+  inp.type = shown ? 'password' : 'text';
+  icon.className = shown ? 'ph-bold ph-eye' : 'ph-bold ph-eye-slash';
+}
+
+function s2Submit(e) {
+  e.preventDefault();
+  const form = document.getElementById('s2-form');
+  function shake() { form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake'); }
+
+  if (s2Mode === 'signup') {
+    const user    = document.getElementById('s2-username').value.trim();
+    const dob     = document.getElementById('s2-dob').value;
+    const pass    = document.getElementById('s2-password').value;
+    const confirm = document.getElementById('s2-confirm-pw').value;
+    if (!user || !dob || !pass || !confirm || pass !== confirm) { shake(); return; }
+    goToStep(3);
+  } else {
+    const email = document.getElementById('s2-email').value.trim();
+    const pass  = document.getElementById('s2-password').value;
+    if (!email || !pass) { shake(); return; }
+    goToStep(4);
+  }
+}
+
+/* ════════════════════════════════════════
+   STEP 4: NAME
+   ════════════════════════════════════════ */
+function s4Init() {
+  const first      = document.getElementById('s4-first');
+  const continueBtn = document.getElementById('s4-continue');
+  if (state.name.first) first.value = state.name.first;
+  const last = document.getElementById('s4-last');
+  if (state.name.last) last.value = state.name.last;
+
+  function update() {
+    const ok = first.value.trim().length > 0;
+    continueBtn.setAttribute('aria-disabled', ok ? 'false' : 'true');
+  }
+  first.addEventListener('input', update);
+  update();
+}
+
+function s4Next() {
+  const first = document.getElementById('s4-first');
+  if (!first.value.trim()) { first.focus(); return; }
+  goToStep(5);
+}
+
+/* ════════════════════════════════════════
+   STEP 5: EMAIL
+   ════════════════════════════════════════ */
+function s5Init() {
+  const emailInp   = document.getElementById('s5-email');
+  const confirmInp = document.getElementById('s5-confirm');
+  const btn        = document.getElementById('s5-continue');
+
+  if (state.email) { emailInp.value = state.email; confirmInp.value = state.email; }
+
+  function isValidEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
+
+  function setFieldState(fieldId, input, statusId, errorId, st) {
+    const field = document.getElementById(fieldId);
+    const statusEl = document.getElementById(statusId);
+    const errEl    = document.getElementById(errorId);
+    input.classList.remove('valid', 'error');
+    statusEl.classList.remove('show', 'ok', 'err');
+    errEl.classList.remove('show');
+    field.classList.remove('has-error');
+    if (st === 'valid') {
+      input.classList.add('valid');
+      statusEl.querySelector('i').className = 'ph-bold ph-check-circle';
+      statusEl.classList.add('show', 'ok');
+    } else if (st === 'error') {
+      input.classList.add('error');
+      statusEl.querySelector('i').className = 'ph-bold ph-x-circle';
+      statusEl.classList.add('show', 'err');
+      errEl.classList.add('show');
+      field.classList.add('has-error');
+    }
+  }
+
+  function validate() {
+    const ev = emailInp.value.trim();
+    const cv = confirmInp.value.trim();
+    const eok = isValidEmail(ev);
+    const cok = cv.length > 0 && ev === cv;
+    if (ev.length > 0) setFieldState('s5-field-email',   emailInp,   's5-status-email',   's5-error-email',   eok ? 'valid' : 'error');
+    if (cv.length > 0) setFieldState('s5-field-confirm', confirmInp, 's5-status-confirm', 's5-error-confirm', cok ? 'valid' : 'error');
+    const ready = eok && cok;
+    btn.setAttribute('aria-disabled', ready ? 'false' : 'true');
+  }
+
+  emailInp.addEventListener('input', validate);
+  confirmInp.addEventListener('input', validate);
+  emailInp.addEventListener('blur',   () => { if (emailInp.value.trim()) validate(); });
+  confirmInp.addEventListener('blur',  () => { if (confirmInp.value.trim()) validate(); });
+  validate();
+}
+
+function s5Next() {
+  const btn = document.getElementById('s5-continue');
+  if (btn.getAttribute('aria-disabled') === 'true') return;
+  goToStep(6);
+}
+
+/* ════════════════════════════════════════
+   STEP 6: GENDER  (init on every show)
+   ════════════════════════════════════════ */
+(function initS6() {
+  const group = document.getElementById('s6-pills');
+  group.addEventListener('click', e => {
+    const pill = e.target.closest('.ob-pill');
+    if (!pill) return;
+    const wasSelected = pill.getAttribute('aria-pressed') === 'true';
+    group.querySelectorAll('.ob-pill').forEach(p => p.setAttribute('aria-pressed', 'false'));
+    if (!wasSelected) pill.setAttribute('aria-pressed', 'true');
+  });
+})();
+
+/* ════════════════════════════════════════
+   STEP 7: LOCATION
+   ════════════════════════════════════════ */
+function s7Init() {
+  const city = document.getElementById('s7-city');
+  const btn  = document.getElementById('s7-continue');
+  const stEl = document.getElementById('s7-state');
+  const zip  = document.getElementById('s7-zip');
+
+  if (state.location.city)  city.value  = state.location.city;
+  if (state.location.state) stEl.value  = state.location.state;
+  if (state.location.zip)   zip.value   = state.location.zip;
+
+  function update() { btn.setAttribute('aria-disabled', city.value.trim() ? 'false' : 'true'); }
+  city.addEventListener('input', update);
+  update();
+
+  stEl.addEventListener('input', () => {
+    const pos = stEl.selectionStart;
+    stEl.value = stEl.value.toUpperCase();
+    stEl.setSelectionRange(pos, pos);
+  });
+  zip.addEventListener('input', () => { zip.value = zip.value.replace(/[^\d-]/g, ''); });
+}
+
+function s7Next() {
+  const city = document.getElementById('s7-city');
+  if (!city.value.trim()) { city.focus(); return; }
+  goToStep(8);
+}
+
+/* ════════════════════════════════════════
+   STEP 8: FIELD
+   ════════════════════════════════════════ */
+function s8Init() {
+  const pills       = document.querySelectorAll('#s8-pills .ob-pill');
+  const pillOther   = document.getElementById('s8-pill-other');
+  const otherReveal = document.getElementById('s8-other-reveal');
+  const otherInput  = document.getElementById('s8-other-input');
+  const btn         = document.getElementById('s8-continue');
+
+  let selectedValue = null;
+
+  // Restore
+  if (state.field) {
+    const match = [...pills].find(p => p.dataset.value === state.field || (p.dataset.value === 'other' && !['technology','finance','healthcare','education','law','marketing','design','engineering','science','business','arts','government'].includes(state.field)));
+    if (match) {
+      match.setAttribute('aria-pressed', 'true');
+      selectedValue = match.dataset.value;
+      if (match.dataset.value === 'other') {
+        otherReveal.classList.add('open');
+        otherReveal.setAttribute('aria-hidden', 'false');
+        otherInput.setAttribute('tabindex', '0');
+        otherInput.value = state.field;
+      }
+    }
+  }
+
+  function updateCta() {
+    const otherSelected = selectedValue === 'other';
+    const ready = selectedValue !== null && (!otherSelected || otherInput.value.trim().length > 0);
+    btn.setAttribute('aria-disabled', ready ? 'false' : 'true');
+  }
+
+  function setOtherReveal(open) {
+    otherReveal.classList.toggle('open', open);
+    otherReveal.setAttribute('aria-hidden', String(!open));
+    otherInput.setAttribute('tabindex', open ? '0' : '-1');
+    if (open) setTimeout(() => otherInput.focus(), 50);
+    else otherInput.value = '';
+  }
+
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      const value = pill.dataset.value;
+      const wasSelected = pill.getAttribute('aria-pressed') === 'true';
+      pills.forEach(p => p.setAttribute('aria-pressed', 'false'));
+      if (wasSelected) { selectedValue = null; setOtherReveal(false); }
+      else { pill.setAttribute('aria-pressed', 'true'); selectedValue = value; setOtherReveal(value === 'other'); }
+      updateCta();
+    });
+  });
+
+  otherInput.addEventListener('input', updateCta);
+  updateCta();
+}
+
+function s8Next() {
+  const btn = document.getElementById('s8-continue');
+  if (btn.getAttribute('aria-disabled') === 'true') return;
+  goToStep(9);
+}
+
+/* ════════════════════════════════════════
+   STEPS 9 & 10: MULTI-SELECT PILL + COUNTER
+   ════════════════════════════════════════ */
+function initPillCounter(pillsId, counterId, pipPrefix, btnId, MAX, nextStep) {
+  const group    = document.getElementById(pillsId);
+  const pills    = group.querySelectorAll('.ob-pill');
+  const counter  = document.getElementById(counterId);
+  const btn      = document.getElementById(btnId);
+  const pips     = [0,1,2,3,4].map(i => document.getElementById(pipPrefix + i));
+  let selected   = new Set();
+
+  function updateUI() {
+    const count   = selected.size;
+    const atLimit = count === MAX;
+
+    counter.textContent = `${count} of ${MAX} selected`;
+    counter.classList.toggle('at-limit', atLimit);
+
+    pips.forEach((pip, i) => {
+      const shouldFill = i < count;
+      const wasFilled  = pip.classList.contains('filled');
+      pip.classList.toggle('filled', shouldFill);
+      if (shouldFill && !wasFilled) {
+        pip.classList.remove('bump');
+        void pip.offsetWidth;
+        pip.classList.add('bump');
+        pip.addEventListener('animationend', () => pip.classList.remove('bump'), { once: true });
+      }
+    });
+
+    pills.forEach(p => {
+      p.classList.toggle('dimmed', atLimit && p.getAttribute('aria-pressed') !== 'true');
+    });
+
+    btn.setAttribute('aria-disabled', count >= 1 ? 'false' : 'true');
+  }
+
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      const value = pill.dataset.value;
+      const isSelected = pill.getAttribute('aria-pressed') === 'true';
+      if (isSelected) { selected.delete(value); pill.setAttribute('aria-pressed', 'false'); }
+      else { if (selected.size >= MAX) return; selected.add(value); pill.setAttribute('aria-pressed', 'true'); }
+      updateUI();
+    });
+  });
+
+  // btn click — navigate
+  btn.addEventListener('click', () => {
+    if (btn.getAttribute('aria-disabled') === 'true') return;
+    goToStep(nextStep);
+  });
+
+  updateUI();
+}
+
+// Wire up steps 9 and 10 once DOM is ready
+initPillCounter('s9-pills',  's9-counter',  's9-pip-',  's9-continue',  5, 10);
+initPillCounter('s10-pills', 's10-counter', 's10-pip-', 's10-continue', 5, 11);
+
+/* ════════════════════════════════════════
+   STEP 11: FINANCE
+   ════════════════════════════════════════ */
+(function initS11() {
+  const allPills     = document.querySelectorAll('#s11-pills .ob-pill');
+  const regularPills = document.querySelectorAll('#s11-pills .ob-pill:not(.exclusive)');
+  const pillNoIdea   = document.getElementById('s11-no-idea');
+  const btn          = document.getElementById('s11-continue');
+
+  function anySelected() { return [...allPills].some(p => p.getAttribute('aria-pressed') === 'true'); }
+  function updateCta()   { btn.setAttribute('aria-disabled', anySelected() ? 'false' : 'true'); }
+
+  regularPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      const isSelected = pill.getAttribute('aria-pressed') === 'true';
+      pill.setAttribute('aria-pressed', isSelected ? 'false' : 'true');
+      if (!isSelected) pillNoIdea.setAttribute('aria-pressed', 'false');
+      updateCta();
+    });
+  });
+
+  pillNoIdea.addEventListener('click', () => {
+    const isSelected = pillNoIdea.getAttribute('aria-pressed') === 'true';
+    if (!isSelected) regularPills.forEach(p => p.setAttribute('aria-pressed', 'false'));
+    pillNoIdea.setAttribute('aria-pressed', isSelected ? 'false' : 'true');
+    updateCta();
+  });
+
+  btn.addEventListener('click', () => {
+    if (btn.getAttribute('aria-disabled') === 'true') return;
+    goToStep(12);
+  });
+})();
+
+/* ════════════════════════════════════════
+   STEP 12: SUMMARY RENDER
+   ════════════════════════════════════════ */
+function renderSummary() {
+  const greeting = document.getElementById('s12-greeting');
+  if (greeting && state.name.first) {
+    greeting.textContent = `${state.name.first}, your corner is set up. A 7-day Pro trial is active — no card needed.`;
+  }
+  renderPillSet('s12-topics-pills',  state.topics,   'No topics selected');
+  renderPillSet('s12-learn-pills',   state.learning, 'No interests selected');
+  renderPillSet('s12-finance-pills', state.finance,  'No instruments selected');
+}
+
+function renderPillSet(id, items, emptyMsg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!items || items.length === 0) {
+    el.innerHTML = `<span class="ob-summary-empty">${emptyMsg}</span>`;
+    return;
+  }
+  el.innerHTML = items.map((v, i) =>
+    `<span class="ob-summary-pill${i === 0 ? ' accent' : ''}">${fmtVal(v)}</span>`
+  ).join('');
+}
+
+function fmtVal(v) {
+  return v.replace(/-/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .replace(/\bAi\b/, 'AI')
+    .replace(/\bEtfs\b/, 'ETFs')
+    .replace(/\bReits\b/, 'REITs');
+}
+
+/* ════════════════════════════════════════
+   BOOT: init step 4 handlers immediately
+   (s4-first is in DOM, needs listener)
+   ════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Pre-attach step 4 listener since it may be active later
+});
+</script>
+</body>
+</html>

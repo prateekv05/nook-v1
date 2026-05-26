@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --no-typescript --eslint --no-tailwind --src-dir --app --no-import-alias --yes)",
+      "Read(//Users/prateekvangari/Downloads/**)",
+      "Bash(npx create-next-app@latest nook-scaffold --no-typescript --eslint --no-tailwind --src-dir --app --no-import-alias --yes)",
+      "Bash(cp -r nook-scaffold/. nook/ --no-clobber)",
+      "Bash(rsync -a --ignore-existing nook-scaffold/ nook/)",
+      "Bash(rm -rf /Users/prateekvangari/Downloads/nook-scaffold && echo \"Cleaned up\")",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)",
+      "Bash(timeout 15 npm run dev)",
+      "mcp__plugin_context-mode_context-mode__ctx_execute",
+      "Bash(cp /tmp/globals_final.css /Users/prateekvangari/Downloads/nook/src/app/globals.css && echo \"Written. Lines: $\\(wc -l < /Users/prateekvangari/Downloads/nook/src/app/globals.css\\)\")",
+      "Bash(npm run *)",
+      "Bash(python3 -c ' *)"
+    ],
+    "additionalDirectories": [
+      "/Users/prateekvangari/Downloads/nook-scaffold",
+      "/private/tmp"
+    ]
+  }
+}
