@@ -12,11 +12,11 @@
 ## SESSION STATE
 *(Claude updates this block at the end of every session)*
 
-**Current Phase:** 0 — Setup in progress
-**Last completed task:** 0.6 — ThemeProvider + useTheme hook
+**Current Phase:** 2 — Home View
+**Last completed task:** 1.4 — Main wrapper + view router (fade-up transitions, section map)
 **In progress:** None
-**Next task:** Phase 0.7 — Vercel deploy
-**Decisions made this session:** Next.js 14.2.35 (not 16), React 18, plain JS (no TypeScript), @supabase/supabase-js installed. globals.css is 1817 lines — full nook-v11 style block + step-enter/shake keyframes + interactive defaults + focus-visible + scrollbar.
+**Next task:** Phase 2.1 — GreetingBanner (static)
+**Decisions made this session:** Phases 0 and 1 fully complete. Next.js 14.2.35, React 18, plain JS, no TypeScript. globals.css 1830 lines. Layout shell live at https://nook-v1.vercel.app/dashboard — Sidebar (nav + theme toggle), Topbar (date + search + notif + share + log today), view router (home/expanded/settings) with fade-up transitions, section map wired to FinanceSection/KnowledgeSection/LifestyleSection/TrackingSection placeholders.
 **Blockers:** None
 
 ---
@@ -31,13 +31,13 @@
 - [x] 0.4 Component shell files created (empty placeholders)
 - [x] 0.5 PWA manifest
 - [x] 0.6 ThemeProvider + useTheme hook
-- [ ] 0.7 Vercel deploy
+- [x] 0.7 Vercel deploy
 
 ### Phase 1 — Layout Shell
-- [ ] 1.1 Shell wrapper
-- [ ] 1.2 Sidebar
-- [ ] 1.3 Topbar
-- [ ] 1.4 Main wrapper + view router
+- [x] 1.1 Shell wrapper
+- [x] 1.2 Sidebar
+- [x] 1.3 Topbar
+- [x] 1.4 Main wrapper + view router
 
 ### Phase 2 — Home View
 - [ ] 2.1 GreetingBanner (static)

@@ -1815,3 +1815,26 @@ button, a, [role="button"] {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-3);
 }
+
+/* ════════════════════════════════════════
+   VIEW CONTENT WRAPPER + TRANSITIONS
+   ════════════════════════════════════════ */
+.view-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  min-height: 0;
+}
+
+/* React-managed views — override the display:none from the reference CSS */
+#home-view, #expanded-view, #settings-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto;
+}
+
+.view-enter {
+  animation: fade-up 0.35s var(--ease-spring) both;
+}
