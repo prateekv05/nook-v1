@@ -1,5 +1,6 @@
 import "./globals.css";
 import ThemeProvider from "../components/layout/ThemeProvider";
+import { ToastProvider } from "../components/ui/Toast";
 
 export const metadata = {
   title: "Nook",
@@ -25,7 +26,9 @@ export default function RootLayout({ children }) {
         <script src="https://unpkg.com/@phosphor-icons/web" async />
       </head>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

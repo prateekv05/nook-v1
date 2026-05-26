@@ -4,10 +4,12 @@ import { useState } from "react";
 import Sidebar from "../../../components/layout/Sidebar";
 import Topbar from "../../../components/layout/Topbar";
 import GreetingBanner from "../../../components/layout/GreetingBanner";
+import HeroGrid from "../../../components/home/HeroGrid";
 import FinanceSection from "../../../components/sections/FinanceSection";
 import KnowledgeSection from "../../../components/sections/KnowledgeSection";
 import LifestyleSection from "../../../components/sections/LifestyleSection";
 import TrackingSection from "../../../components/sections/TrackingSection";
+import SettingsView from "../../../components/settings/SettingsView";
 
 const SECTION_MAP = {
   financial: FinanceSection,
@@ -54,10 +56,7 @@ export default function DashboardPage() {
             {currentView === "home" && (
               <div id="home-view">
                 <GreetingBanner />
-                {/* HeroGrid — Phase 2.3 */}
-                <div id="hero-grid-placeholder" style={{ padding: "14px 16px", color: "var(--text-3)", fontSize: 13 }}>
-                  HeroGrid — Phase 2
-                </div>
+                <HeroGrid setView={setView} setSection={setSection} />
               </div>
             )}
 
@@ -73,11 +72,8 @@ export default function DashboardPage() {
             )}
 
             {currentView === "settings" && (
-              <div id="settings-view">
-                {/* SettingsView — Phase 5.1 */}
-                <div style={{ padding: 32, color: "var(--text-3)", fontSize: 13 }}>
-                  Settings — Phase 5
-                </div>
+              <div id="settings-view" style={{ display: 'flex', flex: 1, flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+                <SettingsView />
               </div>
             )}
           </div>

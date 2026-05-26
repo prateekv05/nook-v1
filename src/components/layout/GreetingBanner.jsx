@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import DayScoreRing from '../ui/DayScoreRing'
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -10,21 +10,8 @@ function getGreeting() {
 }
 
 const SCORE = 72
-const RADIUS = 21
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS // ~131.9
 
 export default function GreetingBanner({ name = 'Alex' }) {
-  const [animated, setAnimated] = useState(false)
-
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setAnimated(true))
-    return () => cancelAnimationFrame(id)
-  }, [])
-
-  const offset = animated
-    ? CIRCUMFERENCE * (1 - SCORE / 100)
-    : CIRCUMFERENCE
-
   return (
     <div className="greeting-banner">
       <div className="gb-inner">
@@ -58,20 +45,7 @@ export default function GreetingBanner({ name = 'Alex' }) {
           <div className="gb-divider" />
 
           <div className="gb-stat" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-            <div className="day-score-ring">
-              <svg width="52" height="52" viewBox="0 0 52 52">
-                <circle className="ring-bg" cx="26" cy="26" r={RADIUS} />
-                <circle
-                  className="ring-fill"
-                  cx="26"
-                  cy="26"
-                  r={RADIUS}
-                  strokeDasharray={CIRCUMFERENCE.toFixed(1)}
-                  strokeDashoffset={offset.toFixed(1)}
-                />
-              </svg>
-              <div className="day-score-val">{SCORE}</div>
-            </div>
+            <DayScoreRing score={SCORE} size={52} bgStroke="var(--gb-divider)" />
             <div className="gb-stat-label">Day Score</div>
           </div>
         </div>

@@ -12,11 +12,14 @@
 ## SESSION STATE
 *(Claude updates this block at the end of every session)*
 
-**Current Phase:** 2 — Home View
-**Last completed task:** 1.4 — Main wrapper + view router (fade-up transitions, section map)
+**Current Phase:** 6 — Onboarding
+**Last completed task:** 6.4 — Step 13 Plans page
 **In progress:** None
-**Next task:** Phase 2.1 — GreetingBanner (static)
-**Decisions made this session:** Phases 0 and 1 fully complete. Next.js 14.2.35, React 18, plain JS, no TypeScript. globals.css 1830 lines. Layout shell live at https://nook-v1.vercel.app/dashboard — Sidebar (nav + theme toggle), Topbar (date + search + notif + share + log today), view router (home/expanded/settings) with fade-up transitions, section map wired to FinanceSection/KnowledgeSection/LifestyleSection/TrackingSection placeholders.
+**Next task:** Phase 7.1 — Supabase client + server setup
+**Decisions made this session:**
+- 6.4 Step13Plans: two-card layout (Free + Pro) with monthly/annual billing toggle; bareStep (no shell topnav — includes its own ob-plans-topnav with back btn → goToStep(3)); both CTAs call goToStep(4); annual tab shows $4.99/mo + "$59.99/yr · save 29%" subtext; monthly shows $6.99/mo.
+- 6.4 CSS added to globals.css: .ob-plans-topnav, .ob-billing-toggle/.ob-billing-tab/.ob-billing-save (segmented toggle), .ob-plan-grid (flex row, stretch), .ob-plan-card/.ob-plan-card.pro (accent-bg + elevated shadow), .ob-plan-badge (pill badge with star icon), .ob-plan-name/.ob-plan-price/.ob-plan-period/.ob-plan-price-alt, .ob-plan-feat-list/.ob-plan-feat-item/.ob-plan-feat-check (free=input-bg, pro=card-bg+accent), .ob-plan-cta/.ob-plan-cta.pro (accent bg, shadow, hover translateY). Theme overrides for regular+dark on pro card shadow and CTA shadow.
+- ob-social-proof/ob-proof-avatar classes reused from reference (already existed in globals.css from prior phases).
 **Blockers:** None
 
 ---
@@ -40,35 +43,35 @@
 - [x] 1.4 Main wrapper + view router
 
 ### Phase 2 — Home View
-- [ ] 2.1 GreetingBanner (static)
-- [ ] 2.2 DayScoreRing component
-- [ ] 2.3 HeroGrid wrapper
-- [ ] 2.4 FinanceColumn (static)
-- [ ] 2.5 KnowledgeColumn (static)
-- [ ] 2.6 LifestyleColumn (static)
+- [x] 2.1 GreetingBanner (static)
+- [x] 2.2 DayScoreRing component
+- [x] 2.3 HeroGrid wrapper
+- [x] 2.4 FinanceColumn (static)
+- [x] 2.5 KnowledgeColumn (static)
+- [x] 2.6 LifestyleColumn (static)
 
 ### Phase 3 — Expanded Sections
-- [ ] 3.1 FinanceSection
-- [ ] 3.2 KnowledgeSection
-- [ ] 3.3 LifestyleSection
-- [ ] 3.4 TrackingSection + DailyInputs
-- [ ] 3.5 AnalyticsTabs (static charts)
-- [ ] 3.6 HistoryList
+- [x] 3.1 FinanceSection
+- [x] 3.2 KnowledgeSection
+- [x] 3.3 LifestyleSection
+- [x] 3.4 TrackingSection + DailyInputs
+- [x] 3.5 AnalyticsTabs (static charts)
+- [x] 3.6 HistoryList
 
 ### Phase 4 — Modals + Overlays
-- [ ] 4.1 Toast (global context)
-- [ ] 4.2 UpgradeModal
-- [ ] 4.3 ShareModal + ShareableCard
-- [ ] 4.4 CalendarModal (checklist history)
+- [x] 4.1 Toast (global context)
+- [x] 4.2 UpgradeModal
+- [x] 4.3 ShareModal + ShareableCard
+- [x] 4.4 CalendarModal (checklist history)
 
 ### Phase 5 — Settings
-- [ ] 5.1 Settings view — all sections static
+- [x] 5.1 Settings view — all sections static
 
 ### Phase 6 — Onboarding
-- [ ] 6.1 OnboardingShell + step router
-- [ ] 6.2 Steps 1–6 (Welcome → Auth → Signup → Name → Reach → Gender)
-- [ ] 6.3 Steps 7–12 (Location → Field → Topics → Learn → Finance → Ready)
-- [ ] 6.4 Plans page (Step 13)
+- [x] 6.1 OnboardingShell + step router
+- [x] 6.2 Steps 1–6 (Welcome → Auth → Signup → Name → Reach → Gender)
+- [x] 6.3 Steps 7–12 (Location → Field → Topics → Learn → Finance → Ready)
+- [x] 6.4 Plans page (Step 13)
 
 ### Phase 7 — Auth + Supabase
 - [ ] 7.1 Supabase client + server setup
