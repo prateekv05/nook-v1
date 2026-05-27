@@ -18,7 +18,7 @@ const THEMES = [
   { id: "calm",    icon: "ph-coffee", label: "Calm" },
 ];
 
-export default function Sidebar({ currentView, setView, currentSection, setSection }) {
+export default function Sidebar({ currentView, setView, currentSection, setSection, isOpen = false }) {
   const { theme, setTheme } = useTheme();
   const [profile, setProfile] = useState(null);
 
@@ -64,7 +64,7 @@ export default function Sidebar({ currentView, setView, currentSection, setSecti
   }
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar${isOpen ? " mobile-open" : ""}`}>
       {/* Logo */}
       <div className="s-logo-row">
         <div className="s-logo">N</div>

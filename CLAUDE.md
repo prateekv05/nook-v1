@@ -12,13 +12,12 @@
 ## SESSION STATE
 *(Claude updates this block at the end of every session)*
 
-**Current Phase:** 13 — Settings + Share Wired (complete)
-**Last completed task:** 13.2 — ShareableCard with real data
+**Current Phase:** 14 — Polish (in progress)
+**Last completed task:** 14.4 — Mobile responsiveness
 **In progress:** None
-**Next task:** 14.1 — Skeleton loading states everywhere
+**Next task:** 14.2 — Empty states everywhere
 **Decisions made this session:**
-- 13.1 `src/app/(app)/settings/page.jsx` — On mount: parallel fetch `profiles` + `user_preferences`, pre-fill all state, `loading` flag disables Save button with "Loading…" text. `useEffect` has try/catch/finally + mounted guard to prevent stale setState on unmount. Save button: parallel `profiles.update` (first_name, last_name, timezone) + `user_preferences.upsert` (theme, news_topics[], learning_topics[], lifestyle_prefs jsonb, income_goal_amount, income_goal_period, notification_preferences jsonb). Theme applies immediately via `setTheme` on click, DB-persisted on Save. Toast "Settings saved ✓" on success, "Couldn't save — please try again" on error.
-- 13.2 `src/components/ui/ShareModal.jsx` — On open: parallel fetch profiles (name), daily_tracking (Mon–Sun avg sleep, days with score≥70, days exercise_mins>0, today's day_score), method_of_week (current method name). Skeleton shown while loading. `handleSaveImage` → toast "Coming soon". `handleCopyLink` → navigator.clipboard → toast "Link copied ✓". ShareableCard updated: methodName stat shown conditionally instead of streak.
+- 14.4 `src/app/globals.css` — Added `@media (max-width: 768px)` block at end of file. Sidebar hidden off-screen (fixed overlay via CSS transform), slides in when `.mobile-open` class applied. `.mobile-menu-btn` hidden on desktop, shown on mobile. Share text label hidden. Hero grid collapses to 1-col. Expanded section grids collapse to 1-col. Greeting banner stats wrap to 2-col. Settings full-width. All tap targets ≥ 44px. `src/app/(app)/dashboard/page.jsx` — Added `sidebarOpen` state + mobile overlay div; sidebar closes on nav item click. `src/components/layout/Topbar.jsx` — Hamburger button added (mobile-only). `src/components/layout/Sidebar.jsx` — Accepts `isOpen` prop, applies `mobile-open` class.
 **Blockers:** None
 
 ---
@@ -112,10 +111,10 @@
 - [x] 13.2 ShareableCard with real data
 
 ### Phase 14 — Polish
-- [ ] 14.1 Skeleton loading states everywhere
+- [x] 14.1 Skeleton loading states everywhere
 - [ ] 14.2 Empty states everywhere
 - [ ] 14.3 Toast error handling globally wired
-- [ ] 14.4 Mobile responsiveness
+- [x] 14.4 Mobile responsiveness
 - [ ] 14.5 Security audit
 
 ### Phase 15 — Onboarding Wired

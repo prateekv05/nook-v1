@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase'
 
-const INITIAL_ITEMS = [
+const FALLBACK_ITEMS = [
   { id: 1, label: 'Morning workout',   done: false },
   { id: 2, label: 'Review finances',   done: false },
   { id: 3, label: 'Read 20 minutes',   done: false },
@@ -22,9 +23,50 @@ const METHOD_DONE = 3
 
 const STRESS_EMOJIS = ['😌', '🙂', '😐', '😕', '😤']
 
+function ChecklistSkeleton() {
+  return (
+    <>
+      {[80, 110, 95].map((w, i) => (
+        <div key={i} className="check-item" style={{ pointerEvents: 'none', gap: 10 }}>
+          <div className="shimmer" style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0 }} />
+          <div className="shimmer" style={{ width: w, height: 13, borderRadius: 5 }} />
+        </div>
+      ))}
+    </>
+  )
+}
+
 export default function LifestyleColumn({ onExpand }) {
-  const [items, setItems] = useState(INITIAL_ITEMS)
+  const [items, setItems] = useState(FALLBACK_ITEMS)
   const [stress, setStress] = useState(1)
+  const [checklistLoading, setChecklistLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    async function loadChecklist() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data } = await supabase
+          .from('checklist_items')
+          .select('id, text, is_done, is_active')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .order('position')
+          .limit(3)
+        if (mounted && data && data.length > 0) {
+          setItems(data.map(i => ({ id: i.id, label: i.text, done: i.is_done })))
+        }
+      } catch {
+        // keep fallback items
+      } finally {
+        if (mounted) setChecklistLoading(false)
+      }
+    }
+    loadChecklist()
+    return () => { mounted = false }
+  }, [])
 
   const doneCount = items.filter(i => i.done).length
   const total = items.length
@@ -69,26 +111,40 @@ export default function LifestyleColumn({ onExpand }) {
         {/* Daily Checklist */}
         <div className="sub-section">
           <div className="sub-label">Daily checklist</div>
-          <div className="cl-progress">
-            <div className="cl-prog-track">
-              <div className="cl-prog-fill" style={{ width: `${progPct}%` }} />
-            </div>
-            <span className="cl-prog-label">{doneCount} of {total}</span>
-          </div>
-          {items.map(item => (
-            <div
-              key={item.id}
-              className="check-item"
-              onClick={e => toggle(item.id, e)}
-            >
-              <div className={`cb${item.done ? ' done' : ''}`}>
-                <svg viewBox="0 0 10 10">
-                  <polyline points="1.5,5 4,7.5 8.5,2.5" />
-                </svg>
+          {checklistLoading ? (
+            <>
+              <div className="cl-progress" style={{ pointerEvents: 'none' }}>
+                <div className="cl-prog-track">
+                  <div className="cl-prog-fill" style={{ width: '0%' }} />
+                </div>
+                <div className="shimmer" style={{ width: 32, height: 12, borderRadius: 4 }} />
               </div>
-              <span className={`ct${item.done ? ' done' : ''}`}>{item.label}</span>
-            </div>
-          ))}
+              <ChecklistSkeleton />
+            </>
+          ) : (
+            <>
+              <div className="cl-progress">
+                <div className="cl-prog-track">
+                  <div className="cl-prog-fill" style={{ width: `${progPct}%` }} />
+                </div>
+                <span className="cl-prog-label">{doneCount} of {total}</span>
+              </div>
+              {items.map(item => (
+                <div
+                  key={item.id}
+                  className="check-item"
+                  onClick={e => toggle(item.id, e)}
+                >
+                  <div className={`cb${item.done ? ' done' : ''}`}>
+                    <svg viewBox="0 0 10 10">
+                      <polyline points="1.5,5 4,7.5 8.5,2.5" />
+                    </svg>
+                  </div>
+                  <span className={`ct${item.done ? ' done' : ''}`}>{item.label}</span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
 
         {/* Stress Check-in */}

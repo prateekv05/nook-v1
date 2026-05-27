@@ -588,6 +588,12 @@ body {
   flex-shrink: 0;
 }
 .gb-stat { text-align: center; padding: 0 16px; }
+.gb-skel {
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.10) 25%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.10) 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
 .gb-stat-val {
   font-size: 17px;
   font-weight: 500;
@@ -616,7 +622,7 @@ body {
 .day-score-ring { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
 .day-score-ring svg { transform: rotate(-90deg); }
 .ring-bg  { fill: none; stroke: var(--gb-divider); stroke-width: 4; }
-.ring-fill { fill: none; stroke: #4ADE80; stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.7s var(--ease-spring); }
+.ring-fill { fill: none; stroke: #4ADE80; stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.7s var(--ease-spring), stroke 0.4s ease; }
 .day-score-val {
   position: absolute;
   inset: 0;
@@ -627,7 +633,14 @@ body {
   font-weight: 600;
   color: var(--gb-stat);
   font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
 }
+@keyframes score-flash {
+  0%   { color: #4ADE80; }
+  60%  { color: #4ADE80; }
+  100% { color: var(--gb-stat); }
+}
+.score-flash { animation: score-flash 0.5s ease forwards; }
 
 /* ── EQUAL 3-COLUMN HERO GRID ── */
 .hero-grid {
@@ -1274,6 +1287,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
 /* History */
 .history-list { margin-top: 12px; }
+.history-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 24px; text-align: center;
+}
 .history-row { border: 0.5px solid var(--border); border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
 .history-row-head {
   display: flex;
@@ -2532,7 +2549,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .day-score-ring { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
 .day-score-ring svg { transform: rotate(-90deg); }
 .ring-bg  { fill: none; stroke: var(--gb-divider); stroke-width: 4; }
-.ring-fill { fill: none; stroke: #4ADE80; stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.7s var(--ease-spring); }
+.ring-fill { fill: none; stroke: #4ADE80; stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.7s var(--ease-spring), stroke 0.4s ease; }
 .day-score-val {
   position: absolute;
   inset: 0;
@@ -2543,6 +2560,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   font-weight: 600;
   color: var(--gb-stat);
   font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
 }
 
 /* Scrollbar */
@@ -3118,6 +3136,19 @@ button, a, [role="button"] {
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
+/* ── Generic shimmer skeleton ───────────────────────────────── */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--input-bg) 25%,
+    var(--border) 50%,
+    var(--input-bg) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
 /* ── Watchlist row remove button ───────────────────────────── */
 .ticker-remove-btn {
   display: flex;
@@ -3152,3 +3183,133 @@ button, a, [role="button"] {
   border-radius: 7px;
 }
 .auth-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Mobile menu button — hidden on desktop, shown via media query */
+.mobile-menu-btn { display: none; }
+
+/* Mobile sidebar overlay */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: calc(var(--z-modal) - 1);
+}
+.mobile-overlay.open { display: block; }
+
+/* ════════════════════════════════════════
+   MOBILE — max-width: 768px
+   ════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Shell / body */
+  body { padding: 0; }
+  .shell {
+    border-radius: 0;
+    min-height: 100dvh;
+    padding: 0;
+    gap: 0;
+    box-shadow: none;
+  }
+
+  /* Sidebar: hidden off-screen, slides in as fixed overlay */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    z-index: var(--z-modal);
+    border-radius: 0 16px 16px 0;
+    transform: translateX(-110%);
+    transition: transform 0.3s var(--ease-spring);
+    box-shadow: 4px 0 40px rgba(0,0,0,0.20);
+  }
+  .sidebar.mobile-open { transform: translateX(0); }
+
+  /* Topbar: add hamburger, reduce padding, hide Share text */
+  .topbar { padding: 10px 16px; }
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 50%;
+    background: var(--input-bg);
+    border: 0.5px solid var(--border);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s var(--ease-spring);
+  }
+  .mobile-menu-btn:hover { background: var(--border); }
+  .mobile-menu-btn:active { transform: scale(0.95); }
+  .mobile-menu-btn i { font-size: 18px; color: var(--text-2); }
+  /* Hide "Share" text, keep icon */
+  .log-btn-ghost span { display: none; }
+  .log-btn-ghost { padding: 7px 10px; }
+
+  /* Greeting banner: stack text + stats */
+  .gb-inner { flex-direction: column; align-items: stretch; gap: 14px; }
+  .gb-stats { flex-wrap: wrap; padding: 10px 0; }
+  .gb-stat { flex: 1 0 calc(50% - 1px); padding: 8px 12px; }
+  .gb-divider { display: none; }
+
+  /* Hero grid: 3-col → 1-col */
+  .hero-grid {
+    grid-template-columns: 1fr;
+    padding: 10px 12px 12px;
+  }
+  .hero-col:nth-child(1),
+  .hero-col:nth-child(2),
+  .hero-col:nth-child(3) { grid-column: 1; }
+  /* Limit hero card height so all 3 are visible without huge scroll */
+  .hero-col { max-height: 380px; }
+  .hero-body { overflow: hidden; }
+
+  /* Expanded sections: all multi-col → 1-col */
+  .eg2, .eg3, .eg-wide { grid-template-columns: 1fr; }
+  .stress-dual { grid-template-columns: 1fr; }
+
+  /* DailyInputs: single-column summary bar */
+  .di-summary-bar { flex-direction: column; gap: 10px; padding: 12px 14px; }
+  .di-stat-row { flex-wrap: wrap; gap: 10px; justify-content: flex-start; }
+
+  /* Expanded section padding */
+  .exp-content { padding: 12px 14px 16px; }
+  .exp-topbar { padding: 12px 14px 0; }
+
+  /* Settings: full width */
+  .settings-sections { max-width: 100%; }
+  .settings-content { padding: 14px 14px; }
+  .sett-row { flex-wrap: wrap; gap: 8px; }
+  .sett-input { min-width: 140px; width: 100%; }
+  .topic-pills { margin-top: 8px; }
+
+  /* Onboarding: full screen, remove outer padding */
+  .ob-step.active { padding: 20px 16px 0; }
+
+  /* Toast: stretch across bottom on mobile */
+  .toast-stack { right: 12px; left: 12px; bottom: 16px; align-items: stretch; }
+  .toast-item { max-width: 100%; }
+
+  /* Tap targets: minimum 44×44px */
+  .s-item { min-height: 44px; }
+  .back-btn { min-height: 44px; }
+  .log-btn { min-height: 44px; }
+  .log-btn-ghost { min-height: 44px; }
+  .notif-btn { width: 44px; height: 44px; }
+  .search-icon-btn { width: 44px; height: 44px; }
+  .e-btn-g { min-height: 44px; }
+  .e-btn-outline { min-height: 44px; }
+  .sett-save-btn { min-height: 44px; }
+  .tt-btn { min-height: 44px; }
+  .ob-cta-btn { min-height: 54px; }
+  .cl-filter-btn { min-height: 36px; padding: 6px 14px; }
+  .e-emoji-btn { width: 44px; height: 44px; }
+  .e-water-cup { width: 40px; height: 40px; }
+  .s-emoji-btn { width: 44px; height: 44px; }
+  .e-meal-btn { min-height: 44px; }
+  .cal-close { width: 36px; height: 36px; }
+}

@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import DayScoreRing from '../ui/DayScoreRing'
 import { calculateDayScore } from '../../lib/day-score'
+import { createClient } from '@/lib/supabase'
+import { useToast } from '@/hooks/useToast'
 
 const EMOJIS = ['😌', '🙂', '😐', '😕', '😤']
 
@@ -20,16 +22,28 @@ function lazyLabel(v) {
 }
 
 function scoreLabel(s) {
-  if (s >= 80) return 'Excellent ✦'
+  if (s >= 80) return 'Excellent day ✦'
   if (s >= 60) return 'Good day ✓'
   if (s >= 40) return 'Decent day'
   return 'Room to grow'
 }
 
-const CHECKLIST_TOTAL = 5
-const CHECKLIST_DONE  = 3
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
 
-export default function DailyInputs() {
+export default function DailyInputs({ onDayScoreUpdate }) {
+  const supabase = createClient()
+  const { showToast } = useToast()
+
+  const [loading,   setLoading]   = useState(true)
+  const [saving,    setSaving]    = useState(false)
+  const [locked,    setLocked]    = useState(false)
+  const [streak,    setStreak]    = useState(0)
+  const [flashing,  setFlashing]  = useState(false)
+
+  const prevScoreRef = useRef(0)
+
   const [water,        setWater]        = useState(0)
   const [sleep,        setSleep]        = useState('')
   const [calories,     setCalories]     = useState('')
@@ -44,28 +58,160 @@ export default function DailyInputs() {
   const [moodMorning,  setMoodMorning]  = useState(null)
   const [moodEvening,  setMoodEvening]  = useState(null)
   const [notes,        setNotes]        = useState('')
-  const [locked,       setLocked]       = useState(false)
 
-  const score = calculateDayScore(
+  const [checklistTotal, setChecklistTotal] = useState(0)
+  const [checklistDone,  setChecklistDone]  = useState(0)
+
+  const liveScore = calculateDayScore(
     {
-      sleep:         parseFloat(sleep) || 0,
+      sleep:        parseFloat(sleep) || 0,
       water,
-      steps:         parseInt(steps) || 0,
-      mood_morning:  moodMorning  !== null ? moodMorning  + 1 : 3,
-      mood_evening:  moodEvening  !== null ? moodEvening  + 1 : 3,
+      steps:        isRestDay ? 0 : (parseInt(steps) || 0),
+      mood_morning: moodMorning !== null ? moodMorning + 1 : 3,
+      mood_evening: moodEvening !== null ? moodEvening + 1 : 3,
     },
-    CHECKLIST_TOTAL,
-    CHECKLIST_DONE,
+    checklistTotal,
+    checklistDone,
   )
+
+  useEffect(() => {
+    if (liveScore > prevScoreRef.current && prevScoreRef.current > 0) {
+      setFlashing(true)
+      const id = setTimeout(() => setFlashing(false), 500)
+      prevScoreRef.current = liveScore
+      return () => clearTimeout(id)
+    }
+    prevScoreRef.current = liveScore
+  }, [liveScore])
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+
+      const today = todayISO()
+
+      const [trackRes, clRes] = await Promise.all([
+        supabase
+          .from('daily_tracking')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .maybeSingle(),
+        supabase
+          .from('checklist_items')
+          .select('id, is_done')
+          .eq('user_id', user.id)
+          .eq('is_active', true),
+      ])
+
+      if (clRes.data) {
+        setChecklistTotal(clRes.data.length)
+        setChecklistDone(clRes.data.filter(i => i.is_done).length)
+      }
+
+      const t = trackRes.data
+      if (t) {
+        setWater(t.water ?? 0)
+        setSleep(t.sleep != null ? String(t.sleep) : '')
+        setCalories(t.meals != null ? '' : '')
+        setMeals(t.meals != null ? String(t.meals) : null)
+        setExerciseType(t.exercise_type ?? '')
+        setExerciseMins(t.exercise_mins != null ? String(t.exercise_mins) : '')
+        setSteps(t.steps != null ? String(t.steps) : '')
+        setIsRestDay(t.is_rest_day ?? false)
+        setProductive(t.productive_hrs ?? 0)
+        setLazy(t.lazy_hrs ?? 0)
+        setMoodMorning(t.mood_morning != null ? t.mood_morning - 1 : null)
+        setMoodEvening(t.mood_evening != null ? t.mood_evening - 1 : null)
+        setNotes(t.notes ?? '')
+        if (t.day_score) prevScoreRef.current = t.day_score
+      }
+
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const toggleWater = useCallback((idx) => {
     setWater(prev => idx < prev ? idx : idx + 1)
   }, [])
 
-  function handleLock() {
-    setLocked(true)
-    setTimeout(() => setLocked(false), 2800)
+  async function handleLock() {
+    setSaving(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const today = todayISO()
+
+      const payload = {
+        user_id:        user.id,
+        date:           today,
+        water,
+        sleep:          parseFloat(sleep) || null,
+        meals:          meals ? parseInt(meals) || null : null,
+        exercise_type:  isRestDay ? null : (exerciseType || null),
+        exercise_mins:  isRestDay ? null : (parseInt(exerciseMins) || null),
+        steps:          isRestDay ? null : (parseInt(steps) || null),
+        productive_hrs: productive,
+        lazy_hrs:       lazy,
+        mood_morning:   moodMorning !== null ? moodMorning + 1 : null,
+        mood_evening:   moodEvening !== null ? moodEvening + 1 : null,
+        notes:          notes || null,
+        is_rest_day:    isRestDay,
+        updated_at:     new Date().toISOString(),
+      }
+
+      const { error: upsertErr } = await supabase
+        .from('daily_tracking')
+        .upsert(payload, { onConflict: 'user_id,date' })
+
+      if (upsertErr) throw upsertErr
+
+      // Refresh checklist counts after upsert (trigger may have updated history)
+      const { data: clData } = await supabase
+        .from('checklist_items')
+        .select('id, is_done')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+
+      const total = clData?.length ?? checklistTotal
+      const done  = clData?.filter(i => i.is_done).length ?? checklistDone
+      setChecklistTotal(total)
+      setChecklistDone(done)
+
+      const finalScore = calculateDayScore(
+        {
+          sleep:        parseFloat(sleep) || 0,
+          water,
+          steps:        isRestDay ? 0 : (parseInt(steps) || 0),
+          mood_morning: moodMorning !== null ? moodMorning + 1 : 3,
+          mood_evening: moodEvening !== null ? moodEvening + 1 : 3,
+        },
+        total,
+        done,
+      )
+
+      await supabase
+        .from('daily_tracking')
+        .update({ day_score: finalScore })
+        .eq('user_id', user.id)
+        .eq('date', today)
+
+      setLocked(true)
+      showToast('Day locked ✓', 'success')
+      onDayScoreUpdate?.(finalScore)
+
+      setTimeout(() => setLocked(false), 3000)
+    } catch {
+      showToast("Couldn't save — please try again", 'error')
+    } finally {
+      setSaving(false)
+    }
   }
+
+  if (loading) return <DailyInputsSkeleton />
 
   return (
     <div>
@@ -79,23 +225,23 @@ export default function DailyInputs() {
         </div>
 
         <div className="di-stat-row">
-          <StatPill icon="ph-moon"       val={sleep ? `${sleep}h` : '—'}                      label="Sleep" />
+          <StatPill icon="ph-moon"       val={sleep ? `${sleep}h` : '—'}                     label="Sleep" />
           <div className="di-stat-div" />
-          <StatPill icon="ph-sneaker"    val={steps ? Number(steps).toLocaleString() : '—'}    label="Steps" />
+          <StatPill icon="ph-sneaker"    val={steps ? Number(steps).toLocaleString() : '—'}   label="Steps" />
           <div className="di-stat-div" />
-          <StatPill icon="ph-drop"       val={`${water}/8`}                                    label="Water" />
+          <StatPill icon="ph-drop"       val={`${water}/8`}                                   label="Water" />
           <div className="di-stat-div" />
-          <StatPill icon="ph-fork-knife" val={meals !== null ? meals : '—'}                    label="Meals" />
+          <StatPill icon="ph-fork-knife" val={meals !== null ? meals : '—'}                   label="Meals" />
           <div className="di-stat-div" />
-          <StatPill icon="ph-lightning"  val={exerciseMins ? `${exerciseMins}m` : '—'}         label="Active" />
+          <StatPill icon="ph-lightning"  val={exerciseMins ? `${exerciseMins}m` : '—'}        label="Active" />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <div>
             <div style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'right', marginBottom: 2 }}>
-              {scoreLabel(score)}
+              {scoreLabel(liveScore)}
             </div>
-            <DayScoreRing score={score} size={52} strokeWidth={4} bgStroke="var(--border)" />
+            <DayScoreRing score={liveScore} size={52} strokeWidth={4} bgStroke="var(--border)" flashing={flashing} />
           </div>
         </div>
       </div>
@@ -165,7 +311,7 @@ export default function DailyInputs() {
                   <button
                     key={v}
                     className={`e-meal-btn${meals === v ? ' active' : ''}`}
-                    onClick={() => setMeals(v)}
+                    onClick={() => setMeals(meals === v ? null : v)}
                   >
                     {v}
                   </button>
@@ -333,18 +479,68 @@ export default function DailyInputs() {
             </div>
 
             {locked ? (
-              <div className="di-lock-confirm">
+              <div
+                className="di-lock-confirm"
+                style={{ animation: 'scale-in 0.35s var(--ease-spring) both' }}
+              >
                 <i className="ph-bold ph-check-circle" style={{ fontSize: 16 }} />
                 Day recorded ✓
+                {streak > 0 && (
+                  <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-3)' }}>
+                    {streak}-day streak
+                  </span>
+                )}
               </div>
             ) : (
-              <button className="e-btn-g di-lock-btn" onClick={handleLock}>
-                <i className="ph-bold ph-lock-key" />
-                Lock today's progress
+              <button
+                className="e-btn-g di-lock-btn"
+                onClick={handleLock}
+                disabled={saving}
+                style={{ opacity: saving ? 0.6 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}
+              >
+                {saving ? (
+                  <>
+                    <i className="ph-bold ph-circle-notch" style={{ animation: 'spin 0.8s linear infinite' }} />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <i className="ph-bold ph-lock-key" />
+                    Lock today's progress
+                  </>
+                )}
               </button>
             )}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function DailyInputsSkeleton() {
+  return (
+    <div>
+      <div className="ec di-summary-bar" style={{ marginBottom: 14 }}>
+        <div className="shimmer" style={{ width: 140, height: 36, borderRadius: 8 }} />
+        <div style={{ display: 'flex', gap: 16 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="shimmer" style={{ width: 40, height: 36, borderRadius: 8 }} />
+          ))}
+        </div>
+        <div className="shimmer" style={{ width: 52, height: 52, borderRadius: '50%' }} />
+      </div>
+      <div className="eg2">
+        {[0, 1].map(col => (
+          <div className="ecol" key={col}>
+            <div className="ec">
+              <div className="shimmer" style={{ height: 120, borderRadius: 10 }} />
+            </div>
+            <div className="ec">
+              <div className="shimmer" style={{ height: 80, borderRadius: 10 }} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

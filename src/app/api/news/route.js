@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, supabaseAdmin } from '@/lib/supabase-server'
 
+
 const TOPIC_QUERY_MAP = {
   'ai-tech':      'artificial intelligence',
   'business':     'business finance',
@@ -16,7 +17,7 @@ const TOPIC_QUERY_MAP = {
 
 function midnightExpiry() {
   const d = new Date()
-  d.setUTCHours(23, 59, 59, 999)
+  d.setUTCHours(24, 0, 0, 0)
   return d.toISOString()
 }
 
@@ -26,11 +27,11 @@ function todayKey() {
 
 async function fetchFromNewsData(query) {
   const url = `https://newsdata.io/api/1/news?apikey=${process.env.NEWSDATA_API_KEY}&q=${encodeURIComponent(query)}&language=en&size=5`
-  const res = await fetch(url, { next: { revalidate: 0 } })
+  const res = await fetch(url, { cache: 'no-store' })
   if (!res.ok) throw new Error(`NewsData.io error: ${res.status}`)
   const json = await res.json()
   return (json.results || []).map(a => ({
-    tag:     query,
+    tag:     a.category?.[0] ?? 'News',
     title:   a.title || '',
     summary: a.description || a.content?.slice(0, 160) || '',
     source:  a.source_id || a.source_name || '',
@@ -67,6 +68,7 @@ export async function GET(request) {
     const { data: cached } = await supabaseAdmin
       .from('ai_content_cache')
       .select('content')
+      .eq('content_type', 'news')
       .eq('content_key', cacheKey)
       .gt('expires_at', new Date().toISOString())
       .maybeSingle()
@@ -88,10 +90,12 @@ export async function GET(request) {
     await supabaseAdmin
       .from('ai_content_cache')
       .upsert({
+        user_id:       null,
         content_type:  'news',
         content_key:   cacheKey,
         content:       JSON.stringify(articles),
         model_version: 'newsdata-v1',
+        token_count:   0,
         generated_at:  new Date().toISOString(),
         expires_at:    midnightExpiry(),
       }, { onConflict: 'content_key' })

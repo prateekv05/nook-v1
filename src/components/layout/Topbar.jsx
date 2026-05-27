@@ -9,7 +9,7 @@ function formatDate(d) {
   return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-export default function Topbar({ currentView, setView, setSection, onShare }) {
+export default function Topbar({ currentView, setView, setSection, onShare, onMenuOpen }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const inputRef = useRef(null);
   const today = formatDate(new Date());
@@ -35,7 +35,16 @@ export default function Topbar({ currentView, setView, setSection, onShare }) {
 
   return (
     <div className="topbar">
-      <div className="date-badge">{today}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button
+          className="mobile-menu-btn"
+          onClick={onMenuOpen}
+          aria-label="Open navigation"
+        >
+          <i className="ph-bold ph-list" />
+        </button>
+        <div className="date-badge">{today}</div>
+      </div>
 
       <div className="tb-right">
         {/* Search */}

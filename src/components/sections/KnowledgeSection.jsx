@@ -1,6 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useAIContent } from '@/hooks/useAIContent'
+
+function AISkeleton({ height = 48 }) {
+  return (
+    <div style={{ height, borderRadius: 8, background: 'var(--input-bg)', backgroundImage: 'linear-gradient(90deg, var(--input-bg) 0%, var(--border) 50%, var(--input-bg) 100%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite linear' }} />
+  )
+}
 
 const ALL_NEWS = [
   {
@@ -58,8 +65,13 @@ const FILTERS = ['All', 'AI', 'Markets', 'Science', 'Other']
 const STREAK_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 const STREAK_DONE = [true, true, true, true, false, false, false]
 
-export default function KnowledgeSection({ onBack }) {
+export default function KnowledgeSection({ onBack, learningTopics = [] }) {
   const [activeFilter, setActiveFilter] = useState('All')
+
+  const todayKey   = new Date().toISOString().slice(0, 10)
+  const firstTopic = learningTopics[0] || 'general knowledge'
+  const { content: dykContent,     loading: dykLoading     } = useAIContent({ type: 'did-you-know', key: `did-you-know-${todayKey}` })
+  const { content: conceptContent, loading: conceptLoading } = useAIContent({ type: 'concept', key: `concept-${firstTopic}-${todayKey}`, userContext: { topics: firstTopic } })
 
   const news = activeFilter === 'All'
     ? ALL_NEWS
@@ -120,20 +132,25 @@ export default function KnowledgeSection({ onBack }) {
             {/* Did You Know */}
             <div className="ec tb">
               <div className="e-label know">Did you know?</div>
-              <div style={{ fontSize: 13, color: 'var(--know-col)', lineHeight: 1.7, fontStyle: 'italic' }}>
-                &ldquo;The human brain processes visual information 60,000&times; faster than text, yet we spend 90% of learning time reading.&rdquo;
-              </div>
+              {dykLoading ? (
+                <AISkeleton height={52} />
+              ) : (
+                <div style={{ fontSize: 13, color: 'var(--know-col)', lineHeight: 1.7, fontStyle: 'italic' }}>
+                  &ldquo;{dykContent || 'The human brain processes visual information 60,000× faster than text, yet we spend 90% of learning time reading.'}&rdquo;
+                </div>
+              )}
             </div>
 
             {/* Concept of the Day */}
             <div className="ec">
               <div className="e-label know">Concept of the day</div>
-              <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-1)', marginBottom: 6, fontFamily: 'var(--font-serif)' }}>
-                Compounding
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6 }}>
-                The process where a quantity grows exponentially because gains are reinvested — making time your most powerful asset. Applies to money, knowledge, and habits equally.
-              </div>
+              {conceptLoading ? (
+                <AISkeleton height={72} />
+              ) : (
+                <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6 }}>
+                  {conceptContent || 'Compounding — The process where a quantity grows exponentially because gains are reinvested, making time your most powerful asset. Applies to money, knowledge, and habits equally.'}
+                </div>
+              )}
             </div>
 
             {/* Deep Dive — Pro */}

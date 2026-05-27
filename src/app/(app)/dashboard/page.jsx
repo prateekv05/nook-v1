@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [currentView, setCurrentView] = useState("home");
   const [currentSection, setCurrentSection] = useState(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   function setView(view) {
     setCurrentView(view);
@@ -39,11 +40,17 @@ export default function DashboardPage() {
 
   return (
     <div className="shell">
+      <div
+        className={`mobile-overlay${sidebarOpen ? " open" : ""}`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
       <Sidebar
         currentView={currentView}
-        setView={setView}
+        setView={(v) => { setView(v); setSidebarOpen(false); }}
         currentSection={currentSection}
-        setSection={setSection}
+        setSection={(s) => { setSection(s); setSidebarOpen(false); }}
+        isOpen={sidebarOpen}
       />
 
       <div className="main">
@@ -52,6 +59,7 @@ export default function DashboardPage() {
           setView={setView}
           setSection={setSection}
           onShare={() => setShareOpen(true)}
+          onMenuOpen={() => setSidebarOpen(true)}
         />
 
         <div className="view-content">

@@ -13,6 +13,7 @@ export default function DayScoreRing({
   size = 52,
   strokeWidth = 4,
   bgStroke = 'var(--border)',
+  flashing = false,
 }) {
   const [animated, setAnimated] = useState(false)
 
@@ -49,7 +50,12 @@ export default function DayScoreRing({
           strokeDashoffset={offset.toFixed(1)}
         />
       </svg>
-      <div className="day-score-val" style={{ fontSize }}>{score}</div>
+      <div
+        className={`day-score-val${flashing ? ' score-flash' : ''}`}
+        style={{ fontSize }}
+      >
+        {score}
+      </div>
     </div>
   )
 }

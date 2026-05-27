@@ -1,42 +1,72 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import DayScoreRing from '../ui/DayScoreRing'
 import { drawLineChart, drawBarChart } from '../../lib/chart-utils'
+import { createClient } from '@/lib/supabase'
+import { isPro } from '@/lib/isPro'
+import { useAIContent } from '@/hooks/useAIContent'
 
-/* ── sample data ──────────────────────────────────────── */
-const WEEK_DAYS   = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const MONTH_WEEKS = ['W1', 'W2', 'W3', 'W4']
+/* ── helpers ─────────────────────────────────────────────── */
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
 
-const WEEK_RINGS = [
-  { day: 'Mon', date: '19', score: 65 },
-  { day: 'Tue', date: '20', score: 82 },
-  { day: 'Wed', date: '21', score: 54 },
-  { day: 'Thu', date: '22', score: 91 },
-  { day: 'Fri', date: '23', score: 78 },
-  { day: 'Sat', date: '24', score: 63 },
-  { day: 'Sun', date: '25', score: 75 },
-]
+function lastNDays(n) {
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (n - 1 - i))
+    return d.toISOString().slice(0, 10)
+  })
+}
 
-const SCORE_BREAKDOWN = [
-  { label: 'Sleep',     pct: 94, color: 'var(--know-col)',  weight: '25%' },
-  { label: 'Water',     pct: 62, color: 'var(--accent)',    weight: '20%' },
-  { label: 'Steps',     pct: 42, color: '#22C55E',          weight: '15%' },
-  { label: 'Checklist', pct: 60, color: 'var(--life-col)',  weight: '20%' },
-  { label: 'Mood',      pct: 70, color: 'var(--pink-col)',  weight: '20%' },
-]
+const DOW_ABBR   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DOW_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-const HABIT_SCORES = [
-  0,  0,  0,  0,  0,  0,  88,
-  82, 54, 91, 78, 63, 83, 76,
-  71, 60, 88, 75, 69, 84, 90,
-  65, 72, 81, 58, 77, 88, 0,
-]
+function isoAbbr(iso)   { return DOW_ABBR[new Date(iso + 'T12:00:00').getDay()] }
+function isoLetter(iso) { return DOW_LETTER[new Date(iso + 'T12:00:00').getDay()] }
 
-/* ── main component ───────────────────────────────────── */
+/* ── main component ──────────────────────────────────────── */
 export default function AnalyticsTabs() {
-  const [tab, setTab] = useState('daily')
+  const [tab,         setTab]         = useState('daily')
+  const [weeklyData,  setWeeklyData]  = useState([])
+  const [monthlyData, setMonthlyData] = useState([])
+  const [loading,     setLoading]     = useState(true)
+  const [userId,      setUserId]      = useState(null)
+  const [profile,     setProfile]     = useState(null)
+
+  useEffect(() => {
+    async function fetchAll() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        const [[w, m], profResult] = await Promise.all([
+          Promise.all([
+            fetch('/api/analytics?period=weekly').then(r => r.json()),
+            fetch('/api/analytics?period=monthly').then(r => r.json()),
+          ]),
+          user
+            ? supabase.from('profiles').select('is_pro, pro_trial_ends_at').eq('id', user.id).single()
+            : Promise.resolve({ data: null }),
+        ])
+
+        setWeeklyData(w.data  || [])
+        setMonthlyData(m.data || [])
+        if (user) {
+          setUserId(user.id)
+          if (profResult.data) setProfile(profResult.data)
+        }
+      } catch {
+        // leave empty arrays — panels show "no data" state
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAll()
+  }, [])
+
+  const today = weeklyData.find(r => r.date === todayISO()) || null
 
   return (
     <div>
@@ -52,35 +82,87 @@ export default function AnalyticsTabs() {
         ))}
       </div>
 
-      {tab === 'daily'   && <DailyPanel   />}
-      {tab === 'weekly'  && <WeeklyPanel  />}
-      {tab === 'monthly' && <MonthlyPanel />}
+      {tab === 'daily'   && <DailyPanel   today={today} loading={loading} />}
+      {tab === 'weekly'  && <WeeklyPanel  data={weeklyData}  loading={loading} userId={userId} profile={profile} />}
+      {tab === 'monthly' && <MonthlyPanel data={monthlyData} loading={loading} />}
     </div>
   )
 }
 
-/* ── daily panel ──────────────────────────────────────── */
-function DailyPanel() {
+/* ── daily panel ─────────────────────────────────────────── */
+function DailyPanel({ today, loading }) {
   const [bars, setBars] = useState(false)
-  useEffect(() => { const id = requestAnimationFrame(() => setBars(true)); return () => cancelAnimationFrame(id) }, [])
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setBars(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  if (loading) return <AnalyticsSkeleton rows={2} />
+
+  const sleep   = today?.sleep          ?? null
+  const steps   = today?.steps          ?? null
+  const water   = today?.water          ?? 0
+  const prod    = today?.productive_hrs ?? null
+  const lazy    = today?.lazy_hrs       ?? null
+  const score   = today?.day_score      ?? 0
+  const moodAM  = today?.mood_morning   ?? 3
+  const moodPM  = today?.mood_evening   ?? 3
+
+  const sleepPct     = Math.round(Math.min((sleep || 0) / 8, 1) * 100)
+  const waterPct     = Math.round(Math.min(water / 8, 1) * 100)
+  const stepsPct     = Math.round(Math.min((steps || 0) / 10000, 1) * 100)
+  const checklistPct = 60 // hardcoded — wired in phase 10.4
+  const moodPct      = Math.round((moodAM + moodPM) / 10 * 100)
+
+  const scoreLine =
+    score >= 80 ? 'Excellent day' :
+    score >= 60 ? 'Good day' :
+    score >= 40 ? 'Decent day' :
+    score >  0  ? 'Room to grow' : 'Log today to see score'
+
+  const breakdown = [
+    { label: 'Sleep',     pct: sleepPct,     color: 'var(--know-col)', weight: '25%' },
+    { label: 'Water',     pct: waterPct,     color: 'var(--accent)',   weight: '20%' },
+    { label: 'Steps',     pct: stepsPct,     color: '#22C55E',         weight: '15%' },
+    { label: 'Checklist', pct: checklistPct, color: 'var(--life-col)', weight: '20%' },
+    { label: 'Mood',      pct: moodPct,      color: 'var(--pink-col)', weight: '20%' },
+  ]
 
   return (
     <div className="at-panel-enter">
       <div className="chart-section-title" style={{ marginTop: 0 }}>Today at a glance</div>
       <div className="chart-grid-2" style={{ marginBottom: 14 }}>
-        <MiniCard label="Sleep"      val="7.5h"  sub="Goal 8h · 94%"     />
-        <MiniCard label="Steps"      val="4,230" sub="Goal 10k · 42%"    />
-        <MiniCard label="Water"      val="5/8"   sub="3 cups remaining"  />
-        <MiniCard label="Productive" val="5h"    sub="vs 2h rest"        />
+        <MiniCard
+          label="Sleep"
+          val={sleep != null ? `${sleep}h` : '—'}
+          sub={sleep != null ? `Goal 8h · ${sleepPct}%` : 'Not logged'}
+        />
+        <MiniCard
+          label="Steps"
+          val={steps != null ? Number(steps).toLocaleString() : '—'}
+          sub={steps != null ? `Goal 10k · ${stepsPct}%` : 'Not logged'}
+        />
+        <MiniCard
+          label="Water"
+          val={`${water}/8`}
+          sub={water >= 8 ? 'Goal reached!' : `${8 - water} cup${8 - water === 1 ? '' : 's'} remaining`}
+        />
+        <MiniCard
+          label="Productive"
+          val={prod != null ? `${prod}h` : '—'}
+          sub={lazy != null ? `vs ${lazy}h rest` : 'Not logged'}
+        />
       </div>
 
       <div className="chart-section-title">Day score breakdown</div>
       <div style={{ background: 'var(--input-bg)', borderRadius: 10, padding: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>75 / 100</span>
-          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Good day</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>
+            {score} / 100
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{scoreLine}</span>
         </div>
-        {SCORE_BREAKDOWN.map(({ label, pct, color, weight }) => (
+        {breakdown.map(({ label, pct, color, weight }) => (
           <div key={label} style={{ marginBottom: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-2)', marginBottom: 3 }}>
               <span>{label} <span style={{ fontSize: 10, color: 'var(--text-3)' }}>({weight})</span></span>
@@ -99,44 +181,92 @@ function DailyPanel() {
   )
 }
 
-/* ── weekly panel ─────────────────────────────────────── */
-function WeeklyPanel() {
-  const [selected, setSelected] = useState(6)
-  const sleepRef  = useRef(null)
-  const prodRef   = useRef(null)
-  const stepsRef  = useRef(null)
+function getWeekStart() {
+  const d = new Date()
+  const diff = (d.getDay() + 6) % 7
+  const monday = new Date(d)
+  monday.setDate(d.getDate() - diff)
+  return monday.toISOString().slice(0, 10)
+}
 
-  const renderCharts = useCallback(() => {
-    requestAnimationFrame(() => {
-      drawLineChart(sleepRef.current, WEEK_DAYS,
-        [{ color: '#1D6FA8', data: [6.5, 7, 7.5, 8.5, 6.5, 7, 7.5] }],
-        { yMax: 10 })
-      drawBarChart(prodRef.current, WEEK_DAYS,
-        [
-          { color: '#2D6A4F', data: [5, 6, 4, 7, 3, 5, 5] },
-          { color: '#EF4444', data: [2, 1, 3, 1, 4, 2, 2] },
-        ],
-        { yMax: 12 })
-      drawBarChart(stepsRef.current, WEEK_DAYS,
-        [{ color: '#22C55E', data: [4.2, 6.8, 5.1, 10.2, 3.2, 8.5, 6.1] }],
-        { yMax: 12 })
-    })
-  }, [])
+/* ── weekly panel ────────────────────────────────────────── */
+function WeeklyPanel({ data, loading, userId, profile }) {
+  const [selected, setSelected] = useState(6)
+  const sleepRef = useRef(null)
+  const prodRef  = useRef(null)
+  const stepsRef = useRef(null)
+
+  const isUserPro = profile ? isPro(profile) : false
+  const weekStart = getWeekStart()
+
+  const trackingSummary = useMemo(() => {
+    if (!data.length) return {}
+    const avg = arr => arr.length ? +(arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(1) : null
+    return {
+      days:        data.length,
+      avgSleep:    avg(data.filter(r => r.sleep         != null).map(r => r.sleep)),
+      avgSteps:    avg(data.filter(r => r.steps         != null).map(r => r.steps)),
+      avgWater:    avg(data.filter(r => r.water         != null).map(r => r.water)),
+      avgScore:    avg(data.filter(r => r.day_score).map(r => r.day_score)),
+      avgProdHrs:  avg(data.filter(r => r.productive_hrs != null).map(r => r.productive_hrs)),
+    }
+  }, [data])
+
+  const { content: insights, loading: insightsLoading } = useAIContent({
+    type: 'ai-insights',
+    key: isUserPro && userId ? `ai-insights-${userId}-${weekStart}` : null,
+    userContext: trackingSummary,
+  })
+
+  const weekDates   = lastNDays(7)
+  const byDate      = Object.fromEntries(data.map(r => [r.date, r]))
+  const weekRows    = weekDates.map(date => ({ date, row: byDate[date] || null }))
+  const chartLabels = weekRows.map(w => isoLetter(w.date))
+  const sleepData   = weekRows.map(w => w.row?.sleep          ?? 0)
+  const prodData    = weekRows.map(w => w.row?.productive_hrs ?? 0)
+  const lazyData    = weekRows.map(w => w.row?.lazy_hrs       ?? 0)
+  const stepsData   = weekRows.map(w => (w.row?.steps         ?? 0) / 1000)
 
   useEffect(() => {
-    renderCharts()
-    const obs = new MutationObserver(renderCharts)
+    if (loading) return
+    function render() {
+      requestAnimationFrame(() => {
+        drawLineChart(sleepRef.current, chartLabels,
+          [{ color: '#1D6FA8', data: sleepData }],
+          { yMax: 10 })
+        drawBarChart(prodRef.current, chartLabels,
+          [
+            { color: '#2D6A4F', data: prodData },
+            { color: '#EF4444', data: lazyData },
+          ],
+          { yMax: 12 })
+        drawBarChart(stepsRef.current, chartLabels,
+          [{ color: '#22C55E', data: stepsData }],
+          { yMax: 15 })
+      })
+    }
+    render()
+    const obs = new MutationObserver(render)
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
     return () => obs.disconnect()
-  }, [renderCharts])
+  }, [loading, data]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ring = WEEK_RINGS[selected]
+  if (loading) return <AnalyticsSkeleton rows={3} />
+
+  const rings = weekRows.map(w => ({
+    day:   isoAbbr(w.date),
+    date:  String(new Date(w.date + 'T12:00:00').getDate()),
+    score: w.row?.day_score ?? 0,
+  }))
+
+  const selDate  = weekRows[selected]
+  const selLabel = new Date(selDate.date + 'T12:00:00')
+    .toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })
 
   return (
     <div className="at-panel-enter">
-      {/* Ring timeline */}
       <div className="hist-rings-scroll" style={{ marginBottom: 14 }}>
-        {WEEK_RINGS.map((r, i) => (
+        {rings.map((r, i) => (
           <button
             key={i}
             className={`hist-ring-item${selected === i ? ' selected' : ''}`}
@@ -145,16 +275,25 @@ function WeeklyPanel() {
           >
             <DayScoreRing score={r.score} size={40} strokeWidth={3} bgStroke="var(--border)" />
             <div style={{ fontSize: 9, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{r.day}</div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>{r.score}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>
+              {r.score || '—'}
+            </div>
           </button>
         ))}
       </div>
 
-      {/* Selected day callout */}
       <div style={{ background: 'var(--input-bg)', borderRadius: 10, padding: '8px 12px', marginBottom: 14, border: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{WEEK_LABELS[selected]}, May {ring.date}</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>Score {ring.score}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{selLabel}</span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>
+          {rings[selected].score ? `Score ${rings[selected].score}` : 'No data'}
+        </span>
       </div>
+
+      {data.length < 7 && (
+        <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '8px 12px', background: 'var(--input-bg)', borderRadius: 10, border: '0.5px solid var(--border)', marginBottom: 14, lineHeight: 1.5 }}>
+          Log for {7 - data.length} more day{7 - data.length === 1 ? '' : 's'} to see your full weekly patterns
+        </div>
+      )}
 
       <div className="chart-section-title" style={{ marginTop: 0 }}>Sleep — last 7 days (hrs)</div>
       <div style={{ marginBottom: 14 }}><canvas ref={sleepRef} className="chart-c" height="100" /></div>
@@ -162,7 +301,7 @@ function WeeklyPanel() {
       <div className="chart-section-title">Productivity vs Rest hours</div>
       <div style={{ marginBottom: 14 }}><canvas ref={prodRef} className="chart-c" height="100" /></div>
 
-      <div className="chart-section-title">Steps — last 7 days</div>
+      <div className="chart-section-title">Steps — last 7 days (thousands)</div>
       <div><canvas ref={stepsRef} className="chart-c" height="80" /></div>
 
       <div className="chart-legend" style={{ marginTop: 10 }}>
@@ -171,60 +310,155 @@ function WeeklyPanel() {
         <LegendItem color="#EF4444" label="Rest"       />
         <LegendItem color="#22C55E" label="Steps"      />
       </div>
+
+      {/* AI Insights — Pro only */}
+      <div className="chart-section-title" style={{ marginTop: 14 }}>
+        AI insights
+        {!isUserPro && <span className="pro-badge" style={{ marginLeft: 6 }}>Pro</span>}
+      </div>
+      {!isUserPro ? (
+        <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '10px 12px', background: 'var(--input-bg)', borderRadius: 10, border: '0.5px solid var(--border)', lineHeight: 1.6 }}>
+          Upgrade to Pro to get personalised pattern insights from your 7-day data.
+        </div>
+      ) : insightsLoading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[72, 60, 80].map((w, i) => (
+            <div key={i} style={{ height: 14, width: `${w}%`, borderRadius: 6, background: 'var(--input-bg)', backgroundImage: 'linear-gradient(90deg, var(--input-bg) 0%, var(--border) 50%, var(--input-bg) 100%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite linear' }} />
+          ))}
+        </div>
+      ) : (
+        <div style={{ background: 'var(--input-bg)', borderRadius: 10, padding: '10px 12px', border: '0.5px solid var(--border)' }}>
+          {(insights || '').split('\n').filter(Boolean).map((line, i) => (
+            <div key={i} style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6, paddingBottom: i < 2 ? 6 : 0, borderBottom: i < 2 ? '0.5px solid var(--sub-divider)' : 'none', marginBottom: i < 2 ? 6 : 0 }}>
+              {line}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-/* ── monthly panel ────────────────────────────────────── */
-function MonthlyPanel() {
-  const sleepRef   = useRef(null)
-  const bestRef    = useRef(null)
+/* ── monthly panel ───────────────────────────────────────── */
+function MonthlyPanel({ data, loading }) {
+  const sleepRef = useRef(null)
+  const bestRef  = useRef(null)
 
-  const renderCharts = useCallback(() => {
-    requestAnimationFrame(() => {
-      drawLineChart(sleepRef.current, MONTH_WEEKS,
-        [
-          { color: '#1D6FA8',               data: [7.0, 7.3, 7.1, 7.5] },
-          { color: 'rgba(29,111,168,.25)',   data: [8, 8, 8, 8] },
-        ],
-        { yMax: 10 })
-      drawBarChart(bestRef.current,
-        ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        [{ color: '#2D6A4F', data: [65, 72, 68, 91, 58, 82, 88] }],
-        { yMax: 100 })
-    })
-  }, [])
+  const monthDates = lastNDays(30)
+  const byDate     = Object.fromEntries(data.map(r => [r.date, r]))
+  const monthRows  = monthDates.map(date => ({ date, row: byDate[date] || null }))
+
+  // Weekly avg sleep for 4 chunks
+  const chunks   = [monthRows.slice(0, 7), monthRows.slice(7, 14), monthRows.slice(14, 21), monthRows.slice(21)]
+  const avgSleep = chunks.map(ch => {
+    const vals = ch.filter(w => w.row?.sleep != null).map(w => w.row.sleep)
+    return vals.length ? +(vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(1) : 0
+  })
+
+  // Average day score per day of week (Sun=0 … Sat=6)
+  const scoresByDow = Array.from({ length: 7 }, () => [])
+  monthRows.forEach(w => {
+    if (w.row?.day_score) {
+      const dow = new Date(w.date + 'T12:00:00').getDay()
+      scoresByDow[dow].push(w.row.day_score)
+    }
+  })
+  const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const avgByDow   = scoresByDow.map(arr =>
+    arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0
+  )
+
+  // Habit calendar — leading blank cells for Mon-start grid
+  const startOffset = (new Date(monthDates[0] + 'T12:00:00').getDay() + 6) % 7
+  const calScores   = [...Array(startOffset).fill(0), ...monthRows.map(w => w.row?.day_score ?? 0)]
+
+  // Monthly aggregates
+  const daysLogged   = monthRows.filter(w => w.row)
+  const withSleep    = daysLogged.filter(w => w.row.sleep  != null)
+  const withSteps    = daysLogged.filter(w => w.row.steps  != null)
+  const withScore    = daysLogged.filter(w => w.row.day_score)
+  const waterHitDays = daysLogged.filter(w => (w.row.water ?? 0) >= 8).length
+
+  const agg = {
+    sleep: withSleep.length
+      ? +(withSleep.reduce((s, w) => s + w.row.sleep, 0) / withSleep.length).toFixed(1) : null,
+    steps: withSteps.length
+      ? Math.round(withSteps.reduce((s, w) => s + w.row.steps, 0) / withSteps.length) : null,
+    waterLabel: daysLogged.length > 0 ? `${waterHitDays}/${daysLogged.length}` : '—',
+    waterSub:   daysLogged.length > 0 ? `${Math.round(waterHitDays / daysLogged.length * 100)}% success rate` : 'No data',
+    score: withScore.length
+      ? Math.round(withScore.reduce((s, w) => s + w.row.day_score, 0) / withScore.length) : null,
+  }
+
+  const monthName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   useEffect(() => {
-    renderCharts()
-    const obs = new MutationObserver(renderCharts)
+    if (loading) return
+    function render() {
+      requestAnimationFrame(() => {
+        drawLineChart(sleepRef.current, ['W1', 'W2', 'W3', 'W4'],
+          [
+            { color: '#1D6FA8',               data: avgSleep },
+            { color: 'rgba(29,111,168,.25)',   data: [8, 8, 8, 8] },
+          ],
+          { yMax: 10 })
+        drawBarChart(bestRef.current, DOW_LABELS,
+          [{ color: '#2D6A4F', data: avgByDow }],
+          { yMax: 100 })
+      })
+    }
+    render()
+    const obs = new MutationObserver(render)
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
     return () => obs.disconnect()
-  }, [renderCharts])
+  }, [loading, data]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (loading) return <AnalyticsSkeleton rows={3} />
 
   return (
     <div className="at-panel-enter">
-      <div className="chart-section-title" style={{ marginTop: 0 }}>Sleep average vs target</div>
+      <div className="chart-section-title" style={{ marginTop: 0 }}>Sleep average vs target (hrs)</div>
       <div style={{ marginBottom: 14 }}><canvas ref={sleepRef} className="chart-c" height="90" /></div>
 
-      <div className="chart-section-title">Habit consistency — May 2026</div>
-      <HabitCal scores={HABIT_SCORES} />
+      <div className="chart-section-title">Habit consistency — {monthName}</div>
+      <HabitCal scores={calScores} />
 
       <div className="chart-section-title">Best days of the week</div>
       <div style={{ marginBottom: 14 }}><canvas ref={bestRef} className="chart-c" height="80" /></div>
 
-      <div className="chart-section-title">Monthly averages</div>
+      <div className="chart-section-title">30-day averages</div>
+      {daysLogged.length < 30 && (
+        <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '8px 12px', background: 'var(--input-bg)', borderRadius: 10, border: '0.5px solid var(--border)', marginBottom: 14, lineHeight: 1.5 }}>
+          {30 - daysLogged.length} more day{30 - daysLogged.length === 1 ? '' : 's'} of logging to see full monthly trends
+        </div>
+      )}
       <div className="chart-grid-2">
-        <MiniCard label="Avg sleep"      val="7.2h"   sub="+0.3h vs last month"  />
-        <MiniCard label="Avg steps"      val="6,840"  sub="+420 vs last month"   />
-        <MiniCard label="Water goal hit" val="18/21"  sub="86% success rate"     />
-        <MiniCard label="Avg day score"  val="71"     sub="+4pts vs last month"  />
+        <MiniCard
+          label="Avg sleep"
+          val={agg.sleep  != null ? `${agg.sleep}h`                  : '—'}
+          sub="Target 8h"
+        />
+        <MiniCard
+          label="Avg steps"
+          val={agg.steps  != null ? agg.steps.toLocaleString()        : '—'}
+          sub="Target 10,000"
+        />
+        <MiniCard
+          label="Water goal"
+          val={agg.waterLabel}
+          sub={agg.waterSub}
+        />
+        <MiniCard
+          label="Avg day score"
+          val={agg.score  != null ? String(agg.score)                 : '—'}
+          sub="out of 100"
+        />
       </div>
     </div>
   )
 }
 
-/* ── habit calendar ───────────────────────────────────── */
+/* ── habit calendar ──────────────────────────────────────── */
 function HabitCal({ scores }) {
   const DAY_HDRS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
   return (
@@ -243,18 +477,10 @@ function HabitCal({ scores }) {
               key={i}
               title={s ? `Score ${s}` : ''}
               style={{
-                height: 22,
-                borderRadius: 5,
-                background: col,
-                opacity,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 9,
-                color: s === 0 ? 'transparent' : '#fff',
-                fontWeight: 600,
-                fontFamily: 'var(--font-sans)',
-                fontVariantNumeric: 'tabular-nums',
+                height: 22, borderRadius: 5, background: col, opacity,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 9, color: s === 0 ? 'transparent' : '#fff',
+                fontWeight: 600, fontFamily: 'var(--font-sans)', fontVariantNumeric: 'tabular-nums',
               }}
             >
               {s || ''}
@@ -266,7 +492,27 @@ function HabitCal({ scores }) {
   )
 }
 
-/* ── helpers ──────────────────────────────────────────── */
+/* ── skeleton ────────────────────────────────────────────── */
+function AnalyticsSkeleton({ rows = 2 }) {
+  return (
+    <div className="at-panel-enter">
+      <div className="shimmer" style={{ height: 14, width: 130, borderRadius: 6, marginBottom: 12 }} />
+      <div className="chart-grid-2" style={{ marginBottom: 14 }}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="shimmer" style={{ height: 62, borderRadius: 10 }} />
+        ))}
+      </div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i}>
+          <div className="shimmer" style={{ height: 14, width: 160, borderRadius: 6, marginBottom: 8 }} />
+          <div className="shimmer" style={{ height: 100, borderRadius: 10, marginBottom: 14 }} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ── helpers ─────────────────────────────────────────────── */
 function MiniCard({ label, val, sub }) {
   return (
     <div className="chart-mini-card">

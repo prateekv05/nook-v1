@@ -1,6 +1,19 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useAIContent } from '@/hooks/useAIContent'
+
+function parseWOD(text) {
+  const word = text?.match(/WORD:\s*(.+)/i)?.[1]?.trim() ?? null
+  const def  = text?.match(/DEFINITION:\s*(.+)/i)?.[1]?.trim() ?? null
+  return { word, def }
+}
+
+function AISkeleton({ height = 36 }) {
+  return (
+    <div style={{ height, borderRadius: 8, background: 'var(--input-bg)', backgroundImage: 'linear-gradient(90deg, var(--input-bg) 0%, var(--border) 50%, var(--input-bg) 100%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite linear' }} />
+  )
+}
 
 const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'TSLA']
 
@@ -40,6 +53,11 @@ export default function FinanceColumn({ onExpand }) {
   const [loading, setLoading]   = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const intervalRef = useRef(null)
+
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const { content: wodContent, loading: wodLoading } = useAIContent({ type: 'word-of-day', key: `word-of-day-${todayKey}` })
+  const { content: tipContent, loading: tipLoading } = useAIContent({ type: 'daily-tip',   key: `daily-tip-${todayKey}` })
+  const wod = parseWOD(wodContent)
 
   async function fetchStocks(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
@@ -116,14 +134,27 @@ export default function FinanceColumn({ onExpand }) {
         {/* Word of the day */}
         <div className="sub-section">
           <div className="sub-label">Word of the day</div>
-          <div className="word-title">Dollar-Cost Averaging</div>
-          <div className="word-def">Investing a fixed amount regularly regardless of price — smoothing out market volatility over time.</div>
+          {wodLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <AISkeleton height={14} />
+              <AISkeleton height={32} />
+            </div>
+          ) : (
+            <>
+              <div className="word-title">{wod.word || 'Dollar-Cost Averaging'}</div>
+              <div className="word-def">{wod.def || 'Investing a fixed amount regularly regardless of price — smoothing out market volatility over time.'}</div>
+            </>
+          )}
         </div>
 
         {/* Daily tip */}
         <div className="sub-section">
           <div className="sub-label">Daily tip</div>
-          <div className="tip-text">"Review your subscriptions monthly — the average person forgets 3 active subscriptions."</div>
+          {tipLoading ? (
+            <AISkeleton height={36} />
+          ) : (
+            <div className="tip-text">&ldquo;{tipContent || 'Review your subscriptions monthly — the average person forgets 3 active subscriptions.'}&rdquo;</div>
+          )}
         </div>
 
         {/* Sentiment */}
