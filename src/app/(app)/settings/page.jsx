@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '../../../lib/supabase';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 
@@ -64,6 +65,9 @@ export default function SettingsPage() {
   const [incomeAmt, setIncomeAmt]   = useState('');
   const [incomePeriod, setIncomePeriod] = useState('Monthly');
   const [notifs, setNotifs] = useState({ morning: false, evening: false, weekly: false });
+
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId]   = useState(null);
 
   function togglePill(set, setFn, val, max) {
     setFn((prev) => {
