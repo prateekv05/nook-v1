@@ -1,6 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useTheme } from "../../hooks/useTheme";
+import { createClient } from "../../lib/supabase";
 
 const NAV_ITEMS = [
   { id: "home",      label: "Dashboard", icon: "ph-house",          view: "home" },
@@ -18,6 +20,13 @@ const THEMES = [
 
 export default function Sidebar({ currentView, setView, currentSection, setSection }) {
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
 
   function handleNav(item) {
     if (item.view === "expanded") {
@@ -108,9 +117,17 @@ export default function Sidebar({ currentView, setView, currentSection, setSecti
       </div>
 
       {/* User row */}
-      <div className="s-user-row" role="button" tabIndex={0}>
+      <div className="s-user-row">
         <div className="s-avatar">AL</div>
         <span className="s-user-name">Alex Lewis</span>
+        <button
+          className="s-logout-btn"
+          onClick={handleLogout}
+          aria-label="Log out"
+          title="Log out"
+        >
+          <i className="ph-bold ph-sign-out" />
+        </button>
       </div>
     </div>
   );
