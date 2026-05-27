@@ -1,8 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-
-export default function Step01Welcome({ onNext }) {
+export default function Step01Welcome({ onNext, setState }) {
   return (
     <>
       <header className="ob-logo-row">
@@ -60,9 +58,14 @@ export default function Step01Welcome({ onNext }) {
           Get started
           <i className="ph-bold ph-arrow-right" />
         </button>
-        <Link href="/login" className="ob-signin-link">
+        <button
+          type="button"
+          className="ob-signin-link"
+          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          onClick={() => { setState(s => ({ ...s, authMode: 'signin' })); onNext(); }}
+        >
           Already have an account? <span>Sign in</span>
-        </Link>
+        </button>
       </div>
     </>
   );

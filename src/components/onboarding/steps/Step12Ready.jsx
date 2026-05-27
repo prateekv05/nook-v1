@@ -42,7 +42,24 @@ export default function Step12Ready({ state }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id);
+      await Promise.all([
+        supabase.from('profiles').update({
+          first_name:           state.name?.first  || null,
+          last_name:            state.name?.last   || null,
+          gender:               state.gender       || null,
+          onboarding_completed: true,
+        }).eq('id', user.id),
+
+        supabase.from('user_preferences').upsert({
+          user_id:             user.id,
+          news_topics:         state.topics   || [],
+          learning_topics:     state.learning || [],
+          finance_instruments: state.finance  || [],
+          gender:              state.gender   || null,
+          location:            state.location || null,
+          field:               state.field    || null,
+        }),
+      ]);
     }
     window.location.href = '/dashboard';
   }

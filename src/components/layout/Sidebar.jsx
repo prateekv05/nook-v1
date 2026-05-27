@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useTheme } from "../../hooks/useTheme";
 import { createClient } from "../../lib/supabase";
 
@@ -19,6 +20,27 @@ const THEMES = [
 
 export default function Sidebar({ currentView, setView, currentSection, setSection }) {
   const { theme, setTheme } = useTheme();
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    async function loadProfile() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      if (data) setProfile(data);
+    }
+    loadProfile();
+  }, []);
+
+  const firstName = profile?.first_name || '';
+  const lastName  = profile?.last_name  || '';
+  const displayName = [firstName, lastName].filter(Boolean).join(' ') || 'User';
+  const initials    = ([firstName[0], lastName[0]].filter(Boolean).join('') || 'U').toUpperCase();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -116,8 +138,8 @@ export default function Sidebar({ currentView, setView, currentSection, setSecti
 
       {/* User row */}
       <div className="s-user-row">
-        <div className="s-avatar">AL</div>
-        <span className="s-user-name">Alex Lewis</span>
+        <div className="s-avatar">{initials}</div>
+        <span className="s-user-name">{displayName}</span>
         <button
           className="s-logout-btn"
           onClick={handleLogout}

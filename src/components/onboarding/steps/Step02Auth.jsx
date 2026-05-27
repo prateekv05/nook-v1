@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '../../../lib/supabase';
 
 export default function Step02Auth({ state, setState, onNext }) {
-  const [mode, setMode]     = useState('signup');
+  const [mode, setMode]     = useState(state?.authMode === 'signin' ? 'signin' : 'signup');
   const [checking, setChecking] = useState(true);
   const [email, setEmail]   = useState('');
   const [password, setPassword] = useState('');
