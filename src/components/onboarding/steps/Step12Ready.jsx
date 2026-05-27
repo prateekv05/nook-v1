@@ -1,6 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { createClient } from '../../../lib/supabase';
 
 function fmtVal(v) {
   return v.replace(/-/g, ' ')
@@ -33,8 +34,18 @@ function SummarySection({ icon, label, items, emptyMsg }) {
 }
 
 export default function Step12Ready({ state }) {
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const firstName = state.name?.first || '';
+
+  async function handleDashboard() {
+    setLoading(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id);
+    }
+    window.location.href = '/dashboard';
+  }
 
   return (
     <>
@@ -82,9 +93,10 @@ export default function Step12Ready({ state }) {
         <button
           type="button"
           className="ob-cta-btn"
-          onClick={() => router.push('/dashboard')}
+          onClick={handleDashboard}
+          disabled={loading}
         >
-          Go to my dashboard
+          {loading ? 'Setting up…' : 'Go to my dashboard'}
           <i className="ph-bold ph-arrow-right" />
         </button>
       </div>

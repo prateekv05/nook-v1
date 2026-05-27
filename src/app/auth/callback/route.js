@@ -41,5 +41,5 @@ export async function GET(request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=confirmation_failed`)
+  return NextResponse.redirect(`${origin}/onboarding`)
 }
