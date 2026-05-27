@@ -12,14 +12,12 @@
 ## SESSION STATE
 *(Claude updates this block at the end of every session)*
 
-**Current Phase:** 7 — Auth + Supabase (complete)
-**Last completed task:** 7.5 — Middleware (`middleware.js`)
+**Current Phase:** 13 — Settings + Share Wired (in progress)
+**Last completed task:** 13.1 — Settings all sections saved to Supabase
 **In progress:** None
-**Next task:** Phase 8 — News + Stocks (user to confirm)
+**Next task:** 13.2 — ShareableCard with real data
 **Decisions made this session:**
-- 7.1 Supabase client + server setup: `@supabase/ssr` installed; `supabase.js` uses `createBrowserClient` + singleton export; `supabase-server.js` exports `createSupabaseServerClient()` (cookie-aware, async) and `supabaseAdmin` (service-role); `middleware.js` protects `/dashboard`, `/settings`, `/onboarding` and redirects authed users away from `/login`, `/signup`
-- 7.2 Database tables SQL: `supabase/schema.sql` — all 13 tables, UNIQUE constraints, FK refs, RLS enabled + policies on every table, ai_content_cache special policy (shared rows readable by authenticated, writes locked to service_role), Trigger 1 (auto-create profiles on auth.users insert), Trigger 2 (snapshot checklist_items → checklist_history on daily_tracking upsert). Run and confirmed Success in Supabase SQL Editor.
-- 7.3 Login page: `src/app/(auth)/login/page.jsx` — full-screen centered layout, `.sett-card` at max-width 400px, Nook logomark + wordmark, serif "Welcome back." heading, `.ob-input` email + password fields, show/hide toggle (`ph-eye`/`ph-eye-slash`), `.ob-cta-btn` submit with spinner + disabled state, inline error banner, forgot password stub, "New to Nook? Create account" → `/signup`. AUTH PAGES CSS block added to globals.css. `jsconfig.json` created with `@/*` alias (was missing).
+- 13.1 `src/app/(app)/settings/page.jsx` — On mount: parallel fetch `profiles` + `user_preferences`, pre-fill all state, `loading` flag disables Save button with "Loading…" text. `useEffect` has try/catch/finally + mounted guard to prevent stale setState on unmount. Save button: parallel `profiles.update` (first_name, last_name, timezone) + `user_preferences.upsert` (theme, news_topics[], learning_topics[], lifestyle_prefs jsonb, income_goal_amount, income_goal_period, notification_preferences jsonb). Theme applies immediately via `setTheme` on click, DB-persisted on Save. Toast "Settings saved ✓" on success, "Couldn't save — please try again" on error.
 **Blockers:** None
 
 ---
@@ -81,36 +79,35 @@
 - [x] 7.5 Route protection middleware
 
 ### Phase 8 — News + Stocks
-- [ ] 8.1 /api/news route
-- [ ] 8.2 /api/stocks route
-- [ ] 8.3 Watchlist add/remove wired
+- [x] 8.1 /api/news route
+- [x] 8.2 /api/stocks route
+- [x] 8.3 Watchlist add/remove wired
 
 ### Phase 9 — Lifestyle Features
-- [ ] 9.1 Checklist (tick, add, carry-forward)
-- [ ] 9.2 Journal (write, edit, save)
-- [ ] 9.3 Gratitude log + history
-- [ ] 9.4 Stress check-in
-- [ ] 9.5 Checklist calendar history modal
+- [x] 9.1 Checklist (tick, add, carry-forward)
+- [x] 9.2 Journal (write, edit, save)
+- [x] 9.3 Gratitude log + history
+- [x] 9.4 Stress check-in
+- [x] 9.5 Checklist calendar history modal
 
 ### Phase 10 — Tracking + Day Score
-- [ ] 10.1 DailyInputs wired to Supabase
-- [ ] 10.2 Day score calculation (lib/day-score.js)
-- [ ] 10.3 Live score ring updates
-- [ ] 10.4 Analytics charts with real data
-- [ ] 10.5 15-day history list
+- [x] 10.1 DailyInputs wired to Supabase
+- [x] 10.2 Live score ring updates
+- [x] 10.3 Analytics charts with real data
+- [x] 10.4 15-day history list
 
 ### Phase 11 — AI Content
-- [ ] 11.1 /api/ai-content route
-- [ ] 11.2 AI prompts library (lib/ai-prompts.js)
-- [ ] 11.3 useAIContent hook
-- [ ] 11.4 AI content wired to all components
+- [x] 11.1 /api/ai-content route
+- [x] 11.2 AI prompts library (lib/ai-prompts.js)
+- [x] 11.3 useAIContent hook
+- [x] 11.4 AI content wired to all components
 
 ### Phase 12 — Expense + Income
-- [ ] 12.1 Expense log (Today / Monthly / 3-Month tabs)
-- [ ] 12.2 Income goal tracker
+- [x] 12.1 Expense log (Today / Monthly / 3-Month tabs)
+- [x] 12.2 Income goal tracker
 
 ### Phase 13 — Settings + Share Wired
-- [ ] 13.1 Settings all sections saved to Supabase
+- [x] 13.1 Settings all sections saved to Supabase
 - [ ] 13.2 ShareableCard with real data
 
 ### Phase 14 — Polish
