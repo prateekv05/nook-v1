@@ -31,8 +31,8 @@ const STEP_COMPONENTS = {
   13: Step13Plans,
 };
 
-// Steps 4–12 show progress bar (9 segments). Segment index = step - 3.
-const PROGRESS_STEPS = [4, 5, 6, 7, 8, 9, 10, 11, 12];
+// Steps 4–11 show progress bar (9 segments). Segment index = step - 3.
+const PROGRESS_STEPS = [4, 5, 6, 7, 8, 9, 10, 11];
 // Steps 2–11 show back button (step 12 topnav is centered wordmark only)
 const BACK_STEPS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 // Steps 4–12 show "Step X of 9" label
@@ -80,6 +80,7 @@ export default function OnboardingShell() {
     <div
       key={animKey}
       className="ob-step active"
+      data-step={currentStep}
       style={{ margin: '0 auto' }}
     >
       {/* Top nav — shown on steps 2–12 */}
