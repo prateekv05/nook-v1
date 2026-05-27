@@ -122,7 +122,6 @@ export default function SettingsPage() {
 
   function handleTheme(t) {
     setTheme(t);
-    showToast('Theme updated', 'info');
   }
 
   async function handleSave() {
