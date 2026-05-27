@@ -1,23 +1,93 @@
 'use client';
 
 import { useState } from 'react';
+import { createClient } from '../../../lib/supabase';
 
-export default function Step02Auth({ onNext }) {
-  const [mode, setMode]       = useState('signin');
+export default function Step02Auth({ state, setState, onNext }) {
+  const [mode, setMode]     = useState('signup');
+  const [email, setEmail]   = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
   const [showPw, setShowPw]   = useState(false);
   const [showCpw, setShowCpw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
+  const [emailSent, setEmailSent] = useState(false);
 
   const isSignup = mode === 'signup';
 
   function switchMode(m) {
     setMode(m);
+    setError('');
     setShowPw(false);
     setShowCpw(false);
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    onNext();
+    setError('');
+
+    if (isSignup) {
+      if (password !== confirmPw) { setError('Passwords do not match.'); return; }
+      if (password.length < 8)   { setError('Password must be at least 8 characters.'); return; }
+    }
+
+    setLoading(true);
+    const supabase = createClient();
+
+    if (isSignup) {
+      const { data, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        },
+      });
+
+      setLoading(false);
+      if (authError) { setError(authError.message); return; }
+
+      setState(s => ({ ...s, email }));
+
+      if (!data.session) {
+        setEmailSent(true);
+        return;
+      }
+
+      onNext();
+    } else {
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+
+      setLoading(false);
+      if (authError) { setError(authError.message); return; }
+
+      window.location.href = '/dashboard';
+    }
+  }
+
+  if (emailSent) {
+    return (
+      <>
+        <div className="ob-heading-block">
+          <h1 className="ob-headline" style={{ fontSize: '36px', lineHeight: '1.1' }}>
+            Check your email.
+          </h1>
+          <p className="ob-subtext">
+            We sent a confirmation link to <strong style={{ color: 'var(--text-1)' }}>{email}</strong>.
+            <br />Click it to verify your account, then sign in.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="ob-submit-btn"
+          style={{ marginTop: 8 }}
+          onClick={() => { setEmailSent(false); switchMode('signin'); }}
+        >
+          Back to sign in
+        </button>
+      </>
+    );
   }
 
   return (
@@ -53,36 +123,6 @@ export default function Step02Auth({ onNext }) {
       </div>
 
       <form className="ob-form" onSubmit={handleSubmit} noValidate>
-        {isSignup && (
-          <div className="ob-field">
-            <label className="ob-field-label" htmlFor="s2-username">Username</label>
-            <div className="ob-input-wrap">
-              <input
-                className="ob-input"
-                type="text"
-                id="s2-username"
-                name="username"
-                placeholder="alexlewis"
-                autoComplete="username"
-              />
-            </div>
-          </div>
-        )}
-
-        {isSignup && (
-          <div className="ob-field">
-            <label className="ob-field-label" htmlFor="s2-dob">Date of birth</label>
-            <div className="ob-input-wrap">
-              <input
-                className="ob-input"
-                type="date"
-                id="s2-dob"
-                name="dob"
-              />
-            </div>
-          </div>
-        )}
-
         <div className="ob-field">
           <label className="ob-field-label" htmlFor="s2-email">Email</label>
           <div className="ob-input-wrap">
@@ -90,9 +130,12 @@ export default function Step02Auth({ onNext }) {
               className="ob-input"
               type="email"
               id="s2-email"
-              name="email"
               placeholder="you@example.com"
               autoComplete="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              disabled={loading}
+              required
             />
           </div>
         </div>
@@ -104,9 +147,12 @@ export default function Step02Auth({ onNext }) {
               className="ob-input has-action"
               type={showPw ? 'text' : 'password'}
               id="s2-password"
-              name="password"
               placeholder="••••••••"
               autoComplete={isSignup ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              disabled={loading}
+              required
             />
             <button
               type="button"
@@ -127,9 +173,12 @@ export default function Step02Auth({ onNext }) {
                 className="ob-input has-action"
                 type={showCpw ? 'text' : 'password'}
                 id="s2-confirm-pw"
-                name="confirm-password"
                 placeholder="••••••••"
                 autoComplete="new-password"
+                value={confirmPw}
+                onChange={e => setConfirmPw(e.target.value)}
+                disabled={loading}
+                required
               />
               <button
                 type="button"
@@ -147,25 +196,19 @@ export default function Step02Auth({ onNext }) {
           <a href="#" className="ob-forgot">Forgot password?</a>
         )}
 
-        <button type="submit" className="ob-submit-btn">
-          {isSignup ? 'Create account' : 'Sign in'}
+        {error && (
+          <p style={{ fontSize: 13, color: 'var(--error-col)', margin: '4px 0 0', lineHeight: 1.4 }}>
+            {error}
+          </p>
+        )}
+
+        <button type="submit" className="ob-submit-btn" disabled={loading || !email || !password}>
+          {loading
+            ? <><i className="ph-bold ph-spinner-gap" style={{ animation: 'spin 0.7s linear infinite' }} /> {isSignup ? 'Creating…' : 'Signing in…'}</>
+            : isSignup ? 'Create account' : 'Sign in'
+          }
         </button>
       </form>
-
-      <div className="ob-divider">
-        <div className="ob-divider-line" />
-        <span className="ob-divider-text">or continue with</span>
-        <div className="ob-divider-line" />
-      </div>
-
-      <div className="ob-social-row">
-        <button type="button" className="ob-social-btn google" onClick={onNext}>
-          <i className="ph-bold ph-google-logo" /> Google
-        </button>
-        <button type="button" className="ob-social-btn apple" onClick={onNext}>
-          <i className="ph-bold ph-apple-logo" /> Apple
-        </button>
-      </div>
 
       <button
         type="button"
