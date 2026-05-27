@@ -16,6 +16,13 @@ const CAT_STYLE = {
   trip:   { bg: 'var(--fin-bg)',  bdr: 'var(--fin-bdr)',  col: 'var(--fin-col)',  icon: 'ph-airplane',  label: 'Trip'   },
 }
 
+const CAT_FILTERS = [
+  { id: 'all',    icon: 'ph-list',       label: 'All'    },
+  { id: 'home',   icon: 'ph-house',      label: 'Home'   },
+  { id: 'office', icon: 'ph-briefcase',  label: 'Office' },
+  { id: 'trip',   icon: 'ph-airplane',   label: 'Trip'   },
+]
+
 const GRAT_HISTORY = [
   { date: 'Sunday, 20 April',   items: ['A quiet morning with good coffee', 'Making progress on a hard project', 'A long call with an old friend'] },
   { date: 'Saturday, 19 April', items: ['The walk in the park after lunch', 'Getting 8 hours of sleep', 'My health and energy today'] },
@@ -28,29 +35,27 @@ const METHOD_DONE = 3
 
 export default function LifestyleSection({ onBack }) {
   // Checklist
-  const [items, setItems]         = useState(INITIAL_ITEMS)
-  const [clFilter, setClFilter]   = useState('all')
-  const [newTask, setNewTask]     = useState('')
+  const [items, setItems]       = useState(INITIAL_ITEMS)
+  const [clFilter, setClFilter] = useState('all')
+  const [newTask, setNewTask]   = useState('')
 
   // Journal
   const [journal, setJournal]     = useState('')
   const [submitted, setSubmitted] = useState(false)
 
   // Gratitude
-  const [grat, setGrat]           = useState(['', '', ''])
-  const [gratSaved, setGratSaved] = useState(false)
+  const [grat, setGrat]               = useState(['', '', ''])
+  const [gratSaved, setGratSaved]     = useState(false)
   const [showHistory, setShowHistory] = useState(false)
 
   // Stress
-  const [morningStress, setMorningStress] = useState(1)
-  const [eveningStress, setEveningStress] = useState(null)
+  const [stress, setStress] = useState(1)
 
   // Method
-  const [doneDays, setDoneDays]   = useState(METHOD_DONE)
-  const [stars, setStars]         = useState(3)
-  const [reflection, setReflection] = useState('')
+  const [doneDays, setDoneDays]         = useState(METHOD_DONE)
+  const [stars, setStars]               = useState(3)
+  const [reflection, setReflection]     = useState('')
 
-  // Checklist helpers
   function toggle(id) {
     setItems(prev => prev.map(i => i.id === id ? { ...i, done: !i.done } : i))
   }
@@ -62,15 +67,9 @@ export default function LifestyleSection({ onBack }) {
     setNewTask('')
   }
 
-  const filtered = items.filter(i => {
-    if (clFilter === 'active') return !i.done
-    if (clFilter === 'done')   return i.done
-    return true
-  })
-
+  const filtered = clFilter === 'all' ? items : items.filter(i => i.cat === clFilter)
   const doneCount = items.filter(i => i.done).length
 
-  // Gratitude update
   function setGratItem(idx, val) {
     setGrat(prev => prev.map((v, i) => i === idx ? val : v))
     setGratSaved(false)
@@ -78,7 +77,6 @@ export default function LifestyleSection({ onBack }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      {/* Topbar */}
       <div className="exp-topbar">
         <button className="back-btn" onClick={onBack}>
           <i className="ph-bold ph-caret-left" />
@@ -90,66 +88,51 @@ export default function LifestyleSection({ onBack }) {
         </div>
       </div>
 
-      {/* Content */}
       <div className="exp-content" style={{ overflow: 'auto' }}>
         <div className="eg2" style={{ gridTemplateColumns: '1.2fr 1fr' }}>
 
-          {/* ── LEFT COLUMN ── */}
+          {/* ── LEFT COLUMN — Method + Journal ── */}
           <div className="ecol">
 
-            {/* Checklist */}
-            <div className="ec">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div className="e-label life" style={{ marginBottom: 0 }}>Daily checklist</div>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--know-col)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <i className="ph-bold ph-calendar" /> History
-                </button>
+            {/* Method of the Week */}
+            <div className="ec ta">
+              <div className="e-label life">Method of the week</div>
+              <div style={{ fontSize: 22, fontWeight: 500, color: 'var(--life-col)', marginBottom: 6, fontFamily: 'var(--font-serif)' }}>
+                Pomodoro Technique — Day {doneDays} of {METHOD_DAYS}
               </div>
-
-              {/* Filter tabs */}
-              <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap' }}>
-                {[['all', 'ph-list', 'All'], ['active', 'ph-circle', 'Active'], ['done', 'ph-check-circle', 'Done']].map(([f, icon, label]) => (
-                  <button
-                    key={f}
-                    className={`cl-filter-btn${clFilter === f ? ' active' : ''}`}
-                    style={clFilter === f ? { background: 'var(--life-col)', borderColor: 'var(--life-col)', color: '#fff' } : {}}
-                    onClick={() => setClFilter(f)}
-                  >
-                    <i className={`ph-bold ${icon}`} /> {label}
-                  </button>
+              <div style={{ fontSize: 13, color: 'var(--life-col)', opacity: 0.85, lineHeight: 1.65, marginBottom: 14 }}>
+                &ldquo;Work in focused 25-min sprints — then rest. Protect your energy, not just your time.&rdquo;
+              </div>
+              <div className="e-mday-row">
+                {Array.from({ length: METHOD_DAYS }, (_, i) => (
+                  <div key={i} className={`e-mday${i < doneDays ? ' done' : ''}`} />
                 ))}
-                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-3)', alignSelf: 'center' }}>
-                  {doneCount}/{items.length}
-                </span>
               </div>
+              <div style={{ fontSize: 11, color: 'var(--life-col)', opacity: 0.7, marginTop: 6 }}>
+                Day {doneDays} of {METHOD_DAYS} — {METHOD_DAYS - doneDays} days remaining
+              </div>
+              <button
+                className="e-btn-g"
+                style={{ marginTop: 12, width: '100%' }}
+                onClick={() => setDoneDays(d => Math.min(d + 1, METHOD_DAYS))}
+                disabled={doneDays >= METHOD_DAYS}
+              >
+                {doneDays >= METHOD_DAYS ? 'All days complete!' : 'Mark today done'}
+              </button>
 
-              {/* Items */}
-              {filtered.map(item => {
-                const cs = CAT_STYLE[item.cat] || CAT_STYLE.home
-                return (
-                  <div key={item.id} className="e-check" onClick={() => toggle(item.id)}>
-                    <div className={`e-cb${item.done ? ' done' : ''}`}>
-                      <svg viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2.5" /></svg>
-                    </div>
-                    <span className={`e-ct${item.done ? ' done' : ''}`} style={{ flex: 1 }}>{item.text}</span>
-                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, background: cs.bg, border: `0.5px solid ${cs.bdr}`, color: cs.col, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <i className={`ph-bold ${cs.icon}`} /> {cs.label}
-                    </span>
-                  </div>
-                )
-              })}
-
-              {/* Add task */}
-              <div className="e-add" style={{ marginTop: 10 }}>
-                <input
-                  className="e-input"
-                  placeholder="Add a task..."
-                  style={{ flex: 1 }}
-                  value={newTask}
-                  onChange={e => setNewTask(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addTask()}
+              <div className="method-feedback">
+                <div className="method-feedback-title">How&rsquo;s it going?</div>
+                <div className="star-row">
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <span key={n} className={`star-btn${n <= stars ? ' active' : ''}`} onClick={() => setStars(n)}>★</span>
+                  ))}
+                </div>
+                <textarea
+                  rows={2}
+                  placeholder="Any notes on your progress..."
+                  value={reflection}
+                  onChange={e => setReflection(e.target.value)}
                 />
-                <button className="e-btn-g" onClick={addTask}>Add</button>
               </div>
             </div>
 
@@ -182,6 +165,89 @@ export default function LifestyleSection({ onBack }) {
                 </>
               )}
             </div>
+          </div>
+
+          {/* ── RIGHT COLUMN — Checklist + Stress + Gratitude ── */}
+          <div className="ecol">
+
+            {/* Daily Checklist */}
+            <div className="ec">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div className="e-label life" style={{ marginBottom: 0 }}>Daily checklist</div>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--know-col)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <i className="ph-bold ph-calendar" /> History
+                </button>
+              </div>
+
+              {/* Category filter tabs */}
+              <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                {CAT_FILTERS.map(f => (
+                  <button
+                    key={f.id}
+                    className={`cl-filter-btn${clFilter === f.id ? ' active' : ''}`}
+                    style={clFilter === f.id ? { background: 'var(--life-col)', borderColor: 'var(--life-col)', color: '#fff' } : {}}
+                    onClick={() => setClFilter(f.id)}
+                  >
+                    <i className={`ph-bold ${f.icon}`} /> {f.label}
+                  </button>
+                ))}
+                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-3)', alignSelf: 'center' }}>
+                  {doneCount}/{items.length}
+                </span>
+              </div>
+
+              {/* Items */}
+              {filtered.map(item => {
+                const cs = CAT_STYLE[item.cat] || CAT_STYLE.home
+                return (
+                  <div key={item.id} className="e-check" onClick={() => toggle(item.id)}>
+                    <div className={`e-cb${item.done ? ' done' : ''}`}>
+                      <svg viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2.5" /></svg>
+                    </div>
+                    <span className={`e-ct${item.done ? ' done' : ''}`} style={{ flex: 1 }}>{item.text}</span>
+                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, background: cs.bg, border: `0.5px solid ${cs.bdr}`, color: cs.col, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <i className={`ph-bold ${cs.icon}`} /> {cs.label}
+                    </span>
+                  </div>
+                )
+              })}
+
+              {/* Add task + category */}
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
+                <div className="e-add" style={{ flex: 1, marginTop: 0 }}>
+                  <input
+                    className="e-input"
+                    placeholder="Add a task..."
+                    style={{ flex: 1 }}
+                    value={newTask}
+                    onChange={e => setNewTask(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addTask()}
+                  />
+                  <button className="e-btn-g" onClick={addTask}>Add</button>
+                </div>
+                <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 7, border: '0.5px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                  + Category
+                </button>
+              </div>
+            </div>
+
+            {/* Stress check-in */}
+            <div className="ec">
+              <div className="e-label life">Stress check-in</div>
+              <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 12 }}>How are you feeling right now?</div>
+              <div className="stress-row" style={{ justifyContent: 'flex-start', gap: 8 }}>
+                {EMOJIS.map((emoji, i) => (
+                  <button
+                    key={i}
+                    className={`s-emoji-btn${stress === i ? ' sel' : ''}`}
+                    onClick={() => setStress(i)}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 10 }}>Check in whenever — morning, midday or evening.</div>
+            </div>
 
             {/* Gratitude log */}
             <div className="ec grow">
@@ -205,7 +271,7 @@ export default function LifestyleSection({ onBack }) {
                 </button>
               </div>
               {showHistory && (
-                <div className="grat-history" style={{ display: 'block' }}>
+                <div className="grat-history" style={{ display: 'block', marginTop: 12 }}>
                   <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 8 }}>Last 14 days</div>
                   {GRAT_HISTORY.map(day => (
                     <div key={day.date} className="grat-day">
@@ -217,81 +283,6 @@ export default function LifestyleSection({ onBack }) {
               )}
             </div>
           </div>
-
-          {/* ── RIGHT COLUMN ── */}
-          <div className="ecol">
-
-            {/* Stress check-in */}
-            <div className="ec">
-              <div className="e-label life">Stress check-in</div>
-              <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 12 }}>How are you feeling right now?</div>
-
-              {[['Morning', morningStress, setMorningStress], ['Evening', eveningStress, setEveningStress]].map(([label, val, setter]) => (
-                <div key={label} style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{label}</div>
-                  <div className="stress-row" style={{ justifyContent: 'flex-start', gap: 8 }}>
-                    {EMOJIS.map((emoji, i) => (
-                      <button
-                        key={i}
-                        className={`s-emoji-btn${val === i ? ' sel' : ''}`}
-                        onClick={() => setter(i)}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Check in whenever — morning, midday or evening.</div>
-            </div>
-
-            {/* Method of the Week */}
-            <div className="ec ta">
-              <div className="e-label life">Method of the week</div>
-              <div style={{ fontSize: 22, fontWeight: 500, color: 'var(--life-col)', marginBottom: 6, fontFamily: 'var(--font-serif)' }}>
-                Pomodoro Technique — Day {doneDays} of {METHOD_DAYS}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--life-col)', opacity: 0.85, lineHeight: 1.65, marginBottom: 14 }}>
-                &ldquo;Work in focused 25-min sprints — then rest. Protect your energy, not just your time.&rdquo;
-              </div>
-              <div className="e-mday-row">
-                {Array.from({ length: METHOD_DAYS }, (_, i) => (
-                  <div key={i} className={`e-mday${i < doneDays ? ' done' : ''}`} />
-                ))}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--life-col)', opacity: 0.7, marginTop: 6 }}>
-                Day {doneDays} of {METHOD_DAYS} — {METHOD_DAYS - doneDays} days remaining
-              </div>
-              <button
-                className="e-btn-g"
-                style={{ marginTop: 12, width: '100%' }}
-                onClick={() => setDoneDays(d => Math.min(d + 1, METHOD_DAYS))}
-                disabled={doneDays >= METHOD_DAYS}
-              >
-                {doneDays >= METHOD_DAYS ? 'All days complete!' : 'Mark today done'}
-              </button>
-
-              {/* Feedback */}
-              <div className="method-feedback">
-                <div className="method-feedback-title">How&rsquo;s it going?</div>
-                <div className="star-row">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <span
-                      key={n}
-                      className={`star-btn${n <= stars ? ' active' : ''}`}
-                      onClick={() => setStars(n)}
-                    >★</span>
-                  ))}
-                </div>
-                <textarea
-                  rows={2}
-                  placeholder="Any notes on your progress..."
-                  value={reflection}
-                  onChange={e => setReflection(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Positivity strip */}
@@ -301,7 +292,7 @@ export default function LifestyleSection({ onBack }) {
             <div>
               <div className="positivity-label">Positivity booster</div>
               <div className="positivity-text">
-                &ldquo;Alex, you completed 5 of 7 goals last week. Your consistency is quietly building something real — progress compounds just like interest.&rdquo;
+                &ldquo;You completed 5 of 7 goals last week. Your consistency is quietly building something real — progress compounds just like interest.&rdquo;
               </div>
             </div>
           </div>

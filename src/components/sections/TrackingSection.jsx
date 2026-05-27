@@ -1,53 +1,46 @@
 'use client'
 
 import { useState } from 'react'
-import DailyInputs   from '../tracking/DailyInputs'
-import AnalyticsTabs  from '../tracking/AnalyticsTabs'
-import HistoryList    from '../tracking/HistoryList'
+import DailyInputs  from '../tracking/DailyInputs'
+import AnalyticsTabs from '../tracking/AnalyticsTabs'
 
 export default function TrackingSection({ onBack }) {
   const [panel, setPanel] = useState('log')
 
   return (
-    <div className="section-wrap">
-      <div className="section-header">
-        <button className="section-back-btn" onClick={onBack} aria-label="Back">
-          <i className="ph-bold ph-arrow-left" />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <div className="exp-topbar">
+        <button className="back-btn" onClick={onBack}>
+          <i className="ph-bold ph-caret-left" />
+          Dashboard
         </button>
-        <div>
-          <div className="section-title" style={{ color: 'var(--know-col)' }}>Tracking</div>
-          <div className="section-sub">Log today's health &amp; focus metrics</div>
+        <div className="exp-label">
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--know-col)', flexShrink: 0 }} />
+          Tracking Window
         </div>
       </div>
 
-      {/* Tab bar matches reference track-tab-bar */}
-      <div className="track-tab-bar" style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
-        <button
-          className={`chart-tab${panel === 'log' ? ' active' : ''}`}
-          style={{ padding: '7px 20px', borderRadius: 8 }}
-          onClick={() => setPanel('log')}
-        >
-          Log today
-        </button>
-        <button
-          className={`chart-tab${panel === 'analytics' ? ' active' : ''}`}
-          style={{ padding: '7px 20px', borderRadius: 8 }}
-          onClick={() => setPanel('analytics')}
-        >
-          Analytics
-        </button>
-        <button
-          className={`chart-tab${panel === 'history' ? ' active' : ''}`}
-          style={{ padding: '7px 20px', borderRadius: 8 }}
-          onClick={() => setPanel('history')}
-        >
-          History
-        </button>
-      </div>
+      <div className="exp-content" style={{ overflow: 'auto' }}>
+        <div className="track-tab-bar" style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
+          <button
+            className={`chart-tab${panel === 'log' ? ' active' : ''}`}
+            style={{ padding: '7px 20px', borderRadius: 8 }}
+            onClick={() => setPanel('log')}
+          >
+            Log today
+          </button>
+          <button
+            className={`chart-tab${panel === 'analytics' ? ' active' : ''}`}
+            style={{ padding: '7px 20px', borderRadius: 8 }}
+            onClick={() => setPanel('analytics')}
+          >
+            Analytics
+          </button>
+        </div>
 
-      {panel === 'log'       && <DailyInputs   />}
-      {panel === 'analytics' && <AnalyticsTabs />}
-      {panel === 'history'   && <HistoryList   />}
+        {panel === 'log'       && <DailyInputs />}
+        {panel === 'analytics' && <AnalyticsTabs />}
+      </div>
     </div>
   )
 }

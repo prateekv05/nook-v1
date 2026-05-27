@@ -79,7 +79,7 @@ export default function FinanceColumn({ onExpand }) {
         </div>
 
         {/* Expense log */}
-        <div className="sub-section">
+        <div className="sub-section" onClick={e => e.stopPropagation()}>
           <div className="sub-label">Expense log</div>
           <div className="hero-exp-list">
             {EXPENSES.map(e => (
@@ -89,6 +89,20 @@ export default function FinanceColumn({ onExpand }) {
                 <span className="hero-exp-amt">{e.amt}</span>
               </div>
             ))}
+          </div>
+          <div className="hero-exp-total">Today: <span>−$36.69</span></div>
+          <div className="e-add">
+            <input className="e-input" placeholder="$0.00" style={{ width: 60 }} />
+            <select className="e-input" style={{ width: 90 }}>
+              <option>Food</option>
+              <option>Transport</option>
+              <option>Entertainment</option>
+              <option>Health</option>
+              <option>Utilities</option>
+              <option>Other</option>
+            </select>
+            <input className="e-input" placeholder="Note" style={{ flex: 1 }} />
+            <button className="e-btn-g">Add</button>
           </div>
         </div>
       </div>

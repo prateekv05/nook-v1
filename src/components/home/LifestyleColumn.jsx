@@ -9,9 +9,12 @@ const INITIAL_ITEMS = [
 ]
 
 const TRACK = [
-  { label: 'Water',  value: '5/8',   pct: 62,  color: 'var(--know-col)' },
-  { label: 'Steps',  value: '7,420', pct: 74,  color: 'var(--accent)'   },
-  { label: 'Sleep',  value: '7.5h',  pct: 94,  color: 'var(--life-col)' },
+  { label: 'Water',      value: '5/8',  pct: 62, color: 'var(--know-col)' },
+  { label: 'Sleep',      value: '7.5h', pct: 94, color: 'var(--life-col)' },
+  { label: 'Steps',      value: '4.2k', pct: 42, color: 'var(--accent)'   },
+  { label: 'Productive', value: '5 hrs',pct: 62, color: 'var(--accent)'   },
+  { label: 'Meals',      value: '2',    pct: null, color: null            },
+  { label: 'Mood',       value: null,   pct: null, color: null            },
 ]
 
 const METHOD_DAYS = 7
@@ -112,10 +115,18 @@ export default function LifestyleColumn({ onExpand }) {
             {TRACK.map(t => (
               <div className="tc" key={t.label}>
                 <div className="tc-l">{t.label}</div>
-                <div className="tc-v">{t.value}</div>
-                <div className="tc-bar">
-                  <div className="tc-bar-fill" style={{ width: `${t.pct}%`, background: t.color }} />
-                </div>
+                {t.label === 'Mood' ? (
+                  <div className="tc-v" style={{ fontSize: 16, lineHeight: 1.2 }}>
+                    <i className="ph-bold ph-smiley" style={{ color: 'var(--life-col)' }} />
+                  </div>
+                ) : (
+                  <div className="tc-v">{t.value}</div>
+                )}
+                {t.pct !== null && (
+                  <div className="tc-bar">
+                    <div className="tc-bar-fill" style={{ width: `${t.pct}%`, background: t.color }} />
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -1,30 +1,73 @@
 'use client'
 
-const NEWS = [
+import { useState } from 'react'
+
+const TOPICS = [
   {
-    tag: 'AI',
+    id: 'ai',
+    label: 'AI & Technology',
     tagBg: 'var(--know-bg)',
     tagColor: 'var(--know-col)',
-    title: 'OpenAI releases new reasoning model with improved coding abilities',
-    src: 'TechCrunch',
+    articles: [
+      { title: 'OpenAI launches faster reasoning model for enterprise', src: 'The Verge' },
+      { title: 'EU AI Act enforcement begins for developers', src: 'Reuters' },
+      { title: 'Google DeepMind releases AlphaFold 3 open weights', src: 'Nature' },
+    ],
   },
   {
-    tag: 'Markets',
+    id: 'business',
+    label: 'Business & Markets',
     tagBg: 'var(--fin-bg)',
     tagColor: 'var(--fin-col)',
-    title: 'Fed signals two rate cuts possible in 2026 as inflation cools',
-    src: 'Reuters',
+    articles: [
+      { title: 'Fed holds rates amid mixed inflation signals', src: 'FT' },
+      { title: 'Nvidia surpasses $3T market cap again on AI demand', src: 'Bloomberg' },
+      { title: 'Apple reports record services revenue in Q2', src: 'WSJ' },
+    ],
   },
   {
-    tag: 'Science',
+    id: 'health',
+    label: 'Health & Medicine',
     tagBg: 'var(--pink-bg)',
     tagColor: 'var(--pink-col)',
-    title: 'New study links sleep quality directly to decision-making performance',
-    src: 'Nature',
+    articles: [
+      { title: 'Sleep quality linked to long-term heart health', src: 'Nature Medicine' },
+      { title: 'New vaccine approach targets multiple cancer types', src: 'NEJM' },
+      { title: 'Study links daily walking to reduced dementia risk', src: 'Lancet' },
+    ],
+  },
+  {
+    id: 'geopolitics',
+    label: 'Geopolitics',
+    tagBg: 'var(--life-bg)',
+    tagColor: 'var(--life-col)',
+    articles: [
+      { title: 'G7 agrees new digital trade framework', src: 'The Guardian' },
+      { title: 'US-China trade talks resume in Geneva', src: 'Reuters' },
+      { title: 'NATO allies increase defense spending pledges', src: 'BBC' },
+    ],
+  },
+  {
+    id: 'science',
+    label: 'Science & Space',
+    tagBg: 'var(--know-bg)',
+    tagColor: 'var(--know-col)',
+    articles: [
+      { title: 'James Webb captures earliest galaxy ever observed', src: 'NASA' },
+      { title: 'Fusion reactor hits energy output milestone', src: 'Science' },
+      { title: 'New carbon-capture material breaks efficiency record', src: 'MIT' },
+    ],
   },
 ]
 
 export default function KnowledgeColumn({ onExpand }) {
+  const [active, setActive] = useState(() => Object.fromEntries(TOPICS.map(t => [t.id, 0])))
+
+  function setArticle(topicId, idx, e) {
+    e.stopPropagation()
+    setActive(prev => ({ ...prev, [topicId]: idx }))
+  }
+
   return (
     <div className="hero-col" onClick={onExpand}>
       <div className="hero-header know">
@@ -40,40 +83,36 @@ export default function KnowledgeColumn({ onExpand }) {
         </div>
       </div>
 
-      <div className="hero-body">
-        {/* Top News */}
-        <div className="sub-section">
-          <div className="sub-label">Top News</div>
-          {NEWS.map(n => (
-            <div className="news-item" key={n.title}>
-              <span
-                className="news-tag"
-                style={{ background: n.tagBg, color: n.tagColor }}
-              >
-                {n.tag}
-              </span>
-              <div className="news-title">{n.title}</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
-                <div className="news-src">{n.src}</div>
+      <div className="hero-body know-hero-scroll">
+        <div className="sub-label" style={{ marginBottom: 8 }}>Today&rsquo;s news</div>
+        {TOPICS.map(topic => {
+          const art = topic.articles[active[topic.id]]
+          return (
+            <div key={topic.id} className="know-topic-group">
+              <div className="know-topic-header">
+                <span
+                  className="news-tag"
+                  style={{ background: topic.tagBg, color: topic.tagColor }}
+                >
+                  {topic.label}
+                </span>
+                <div className="know-topic-dots">
+                  {topic.articles.map((_, i) => (
+                    <button
+                      key={i}
+                      className={`know-topic-dot${active[topic.id] === i ? ' active' : ''}`}
+                      style={{ background: active[topic.id] === i ? topic.tagColor : undefined }}
+                      onClick={e => setArticle(topic.id, i, e)}
+                      aria-label={`Article ${i + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
+              <div className="know-topic-title">{art.title}</div>
+              <div className="news-src">{art.src}</div>
             </div>
-          ))}
-        </div>
-
-        {/* Did You Know */}
-        <div className="sub-section">
-          <div className="sub-label">Did you know</div>
-          <div className="did-you-know">
-            &ldquo;The human brain processes visual information 60,000&times; faster than text, yet we spend 90% of learning time reading.&rdquo;
-          </div>
-        </div>
-
-        {/* Concept of the Day */}
-        <div className="sub-section">
-          <div className="sub-label">Concept of the day</div>
-          <div className="concept-name">Compounding</div>
-          <div className="concept-def">The process where a quantity grows exponentially because gains are reinvested — making time your most powerful asset.</div>
-        </div>
+          )
+        })}
       </div>
     </div>
   )

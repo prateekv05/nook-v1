@@ -31,12 +31,13 @@ const CHECKLIST_DONE  = 3
 
 export default function DailyInputs() {
   const [water,        setWater]        = useState(0)
-  const [steps,        setSteps]        = useState('')
   const [sleep,        setSleep]        = useState('')
-  const [weight,       setWeight]       = useState('')
+  const [calories,     setCalories]     = useState('')
+  const [meals,        setMeals]        = useState(null)
   const [exerciseType, setExerciseType] = useState('')
   const [exerciseMins, setExerciseMins] = useState('')
-  const [meals,        setMeals]        = useState(null)
+  const [steps,        setSteps]        = useState('')
+  const [calsBurnt,    setCalsBurnt]    = useState('')
   const [isRestDay,    setIsRestDay]    = useState(false)
   const [productive,   setProductive]   = useState(0)
   const [lazy,         setLazy]         = useState(0)
@@ -67,7 +68,7 @@ export default function DailyInputs() {
   }
 
   return (
-    <div className="daily-inputs-wrap">
+    <div>
       {/* Summary bar */}
       <div className="ec di-summary-bar">
         <div style={{ flexShrink: 0 }}>
@@ -78,15 +79,15 @@ export default function DailyInputs() {
         </div>
 
         <div className="di-stat-row">
-          <StatPill icon="ph-moon"       val={sleep ? `${sleep}h`         : '—'} label="Sleep"    />
+          <StatPill icon="ph-moon"       val={sleep ? `${sleep}h` : '—'}                      label="Sleep" />
           <div className="di-stat-div" />
-          <StatPill icon="ph-sneaker"    val={steps ? Number(steps).toLocaleString() : '—'} label="Steps" />
+          <StatPill icon="ph-sneaker"    val={steps ? Number(steps).toLocaleString() : '—'}    label="Steps" />
           <div className="di-stat-div" />
-          <StatPill icon="ph-drop"       val={`${water}/8`}               label="Water"    />
+          <StatPill icon="ph-drop"       val={`${water}/8`}                                    label="Water" />
           <div className="di-stat-div" />
-          <StatPill icon="ph-fork-knife" val={meals !== null ? meals      : '—'} label="Meals"  />
+          <StatPill icon="ph-fork-knife" val={meals !== null ? meals : '—'}                    label="Meals" />
           <div className="di-stat-div" />
-          <StatPill icon="ph-lightning"  val={exerciseMins ? `${exerciseMins}m` : '—'} label="Active" />
+          <StatPill icon="ph-lightning"  val={exerciseMins ? `${exerciseMins}m` : '—'}         label="Active" />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
@@ -125,23 +126,12 @@ export default function DailyInputs() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
               <div>
-                <div className="e-field-label">Steps</div>
-                <input
-                  type="number"
-                  className="e-input"
-                  placeholder="0"
-                  value={steps}
-                  onChange={e => setSteps(e.target.value)}
-                  style={{ fontVariantNumeric: 'tabular-nums' }}
-                />
-              </div>
-              <div>
                 <div className="e-field-label">Sleep</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <input
                     type="number"
                     className="e-input"
-                    placeholder="0"
+                    placeholder="7.5"
                     step="0.5"
                     min="0"
                     max="24"
@@ -152,21 +142,34 @@ export default function DailyInputs() {
                   <span style={{ fontSize: 11, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>hrs</span>
                 </div>
               </div>
+              <div>
+                <div className="e-field-label">Calories in</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input
+                    type="number"
+                    className="e-input"
+                    placeholder="2100"
+                    value={calories}
+                    onChange={e => setCalories(e.target.value)}
+                    style={{ fontVariantNumeric: 'tabular-nums' }}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--text-3)' }}>kcal</span>
+                </div>
+              </div>
             </div>
 
             <div>
-              <div className="e-field-label">Weight <span style={{ fontSize: 10, color: 'var(--text-3)' }}>(optional)</span></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input
-                  type="number"
-                  className="e-input"
-                  placeholder="—"
-                  step="0.1"
-                  value={weight}
-                  onChange={e => setWeight(e.target.value)}
-                  style={{ fontVariantNumeric: 'tabular-nums' }}
-                />
-                <span style={{ fontSize: 11, color: 'var(--text-3)' }}>kg</span>
+              <div className="e-field-label">Meals today</div>
+              <div className="e-meal-seg">
+                {['1', '2', '3', '3+'].map(v => (
+                  <button
+                    key={v}
+                    className={`e-meal-btn${meals === v ? ' active' : ''}`}
+                    onClick={() => setMeals(v)}
+                  >
+                    {v}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -250,18 +253,28 @@ export default function DailyInputs() {
                 </div>
               </div>
 
-              <div>
-                <div className="e-field-label">Meals today</div>
-                <div className="e-meal-seg">
-                  {['1', '2', '3', '3+'].map(v => (
-                    <button
-                      key={v}
-                      className={`e-meal-btn${meals === v ? ' active' : ''}`}
-                      onClick={() => setMeals(v)}
-                    >
-                      {v}
-                    </button>
-                  ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <div className="e-field-label">Steps</div>
+                  <input
+                    type="number"
+                    className="e-input"
+                    placeholder="0"
+                    value={steps}
+                    onChange={e => setSteps(e.target.value)}
+                    style={{ fontVariantNumeric: 'tabular-nums', width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <div className="e-field-label">Cals burnt</div>
+                  <input
+                    type="number"
+                    className="e-input"
+                    placeholder="380"
+                    value={calsBurnt}
+                    onChange={e => setCalsBurnt(e.target.value)}
+                    style={{ fontVariantNumeric: 'tabular-nums', width: '100%' }}
+                  />
                 </div>
               </div>
             </div>

@@ -61,6 +61,19 @@ export default function Sidebar({ currentView, setView, currentSection, setSecti
       <div className="s-spacer" />
       <div className="s-divider" />
 
+      {/* Dev: Onboarding preview link */}
+      <a
+        href="/onboarding"
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, color: 'var(--sb-icon)', fontSize: 13, textDecoration: 'none', transition: 'all 0.2s', marginBottom: 4 }}
+        onMouseOver={e => e.currentTarget.style.background = 'var(--sb-active)'}
+        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+      >
+        <i className="ph-bold ph-rocket-launch" />
+        <span className="s-item-label">Onboarding</span>
+      </a>
+
+      <div className="s-divider" />
+
       {/* Theme toggle */}
       <div className="s-theme-wrap">
         <div className="s-theme-label">Appearance</div>
