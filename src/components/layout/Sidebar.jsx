@@ -23,7 +23,7 @@ export default function Sidebar({ currentView, setView, currentSection, setSecti
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    window.location.href = "/onboarding";
   }
 
   function handleNav(item) {

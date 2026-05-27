@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
-const PROTECTED_PATHS = ['/dashboard', '/settings', '/onboarding']
+const PROTECTED_PATHS = ['/dashboard', '/settings']
 const AUTH_PATHS = ['/login', '/signup']
 // Routes where we skip the onboarding check to avoid redirect loops
 const ONBOARDING_EXEMPT = ['/onboarding', '/login', '/signup']
