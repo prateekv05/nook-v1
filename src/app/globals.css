@@ -3071,6 +3071,14 @@ button, a, [role="button"] {
   padding-top: 20px;
   border-top: 0.5px solid var(--border);
 }
+.auth-confirm-msg {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.6;
+  text-align: center;
+  margin: 0 0 28px;
+}
+.auth-confirm-msg strong { color: var(--text-1); font-weight: 500; }
 
 .auth-link {
   color: var(--accent);

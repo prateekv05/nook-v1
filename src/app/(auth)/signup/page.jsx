@@ -27,6 +27,7 @@ export default function SignupPage() {
   const [fieldErrors, setFieldErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -46,36 +47,52 @@ export default function SignupPage() {
       return
     }
 
-    const user = data?.user
-    if (!user) {
-      setSubmitError('Account created — please check your email to confirm, then sign in.')
+    // No session = email confirmation required. Don't proceed until confirmed.
+    if (!data.session) {
+      setEmailSent(true)
       setLoading(false)
       return
     }
 
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: user.id,
-        first_name: firstName.trim(),
-        email,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        onboarding_completed: false,
-        is_pro: true,
-        pro_trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-      })
-
-    if (profileError) {
-      setSubmitError(profileError.message)
-      setLoading(false)
-      return
-    }
+    // Session exists (email confirmation disabled in Supabase settings).
+    // Update profile and continue to onboarding.
+    const user = data.user
+    await supabase.from('profiles').upsert({
+      id: user.id,
+      first_name: firstName.trim(),
+      email,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      onboarding_completed: false,
+      is_pro: true,
+      pro_trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    })
 
     router.push('/onboarding')
   }
 
   function clearFieldError(field) {
     if (fieldErrors[field]) setFieldErrors(prev => ({ ...prev, [field]: '' }))
+  }
+
+  if (emailSent) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card sett-card">
+          <div className="auth-logo">
+            <div className="auth-logo-mark">N</div>
+            <span className="auth-logo-name">Nook</span>
+          </div>
+          <h1 className="auth-heading">Check your email.</h1>
+          <p className="auth-confirm-msg">
+            We sent a confirmation link to <strong>{email}</strong>.<br />
+            Click it to activate your account, then sign in.
+          </p>
+          <Link href="/login" className="ob-cta-btn auth-submit" style={{ display: 'flex', justifyContent: 'center', textDecoration: 'none' }}>
+            Back to sign in
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
