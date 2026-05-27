@@ -12,12 +12,13 @@
 ## SESSION STATE
 *(Claude updates this block at the end of every session)*
 
-**Current Phase:** 14 — Polish (in progress)
-**Last completed task:** 14.4 — Mobile responsiveness
+**Current Phase:** 15 — Onboarding Wired (in progress)
+**Last completed task:** 15.2 — Post-signup redirects verified and fixed
 **In progress:** None
-**Next task:** 14.2 — Empty states everywhere
+**Next task:** 14.2 — Empty states everywhere (Phase 14 remaining)
 **Decisions made this session:**
-- 14.4 `src/app/globals.css` — Added `@media (max-width: 768px)` block at end of file. Sidebar hidden off-screen (fixed overlay via CSS transform), slides in when `.mobile-open` class applied. `.mobile-menu-btn` hidden on desktop, shown on mobile. Share text label hidden. Hero grid collapses to 1-col. Expanded section grids collapse to 1-col. Greeting banner stats wrap to 2-col. Settings full-width. All tap targets ≥ 44px. `src/app/(app)/dashboard/page.jsx` — Added `sidebarOpen` state + mobile overlay div; sidebar closes on nav item click. `src/components/layout/Topbar.jsx` — Hamburger button added (mobile-only). `src/components/layout/Sidebar.jsx` — Accepts `isOpen` prop, applies `mobile-open` class.
+- 15.1 `src/components/onboarding/steps/Step12Ready.jsx` — Added `useToast` + try/catch (non-blocking error toast), added `lifestyle_prefs: ['journal','gratitude','checklist','stress']` to upsert, fixed `field` to use `state.fieldOther || state.field`.
+- 15.2 `middleware.js` — Added `withCookies()` helper that forwards Supabase auth cookies (e.g. token refresh) onto every redirect response, preventing session flash on page refresh.
 **Blockers:** None
 
 ---
@@ -118,8 +119,8 @@
 - [ ] 14.5 Security audit
 
 ### Phase 15 — Onboarding Wired
-- [ ] 15.1 Onboarding saves all state to Supabase
-- [ ] 15.2 Correct redirects post-signup
+- [x] 15.1 Onboarding saves all state to Supabase
+- [x] 15.2 Correct redirects post-signup
 
 ---
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '../../../lib/supabase';
+import { useToast } from '../../../hooks/useToast';
 
 function fmtVal(v) {
   return v.replace(/-/g, ' ')
@@ -36,30 +37,36 @@ function SummarySection({ icon, label, items, emptyMsg }) {
 export default function Step12Ready({ state }) {
   const [loading, setLoading] = useState(false);
   const firstName = state.name?.first || '';
+  const { showToast } = useToast();
 
   async function handleDashboard() {
     setLoading(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await Promise.all([
-        supabase.from('profiles').update({
-          first_name:           state.name?.first  || null,
-          last_name:            state.name?.last   || null,
-          gender:               state.gender       || null,
-          onboarding_completed: true,
-        }).eq('id', user.id),
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await Promise.all([
+          supabase.from('profiles').update({
+            first_name:           state.name?.first  || null,
+            last_name:            state.name?.last   || null,
+            gender:               state.gender       || null,
+            onboarding_completed: true,
+          }).eq('id', user.id),
 
-        supabase.from('user_preferences').upsert({
-          user_id:             user.id,
-          news_topics:         state.topics   || [],
-          learning_topics:     state.learning || [],
-          finance_instruments: state.finance  || [],
-          gender:              state.gender   || null,
-          location:            state.location || null,
-          field:               state.field    || null,
-        }),
-      ]);
+          supabase.from('user_preferences').upsert({
+            user_id:             user.id,
+            news_topics:         state.topics   || [],
+            learning_topics:     state.learning || [],
+            finance_instruments: state.finance  || [],
+            lifestyle_prefs:     ['journal', 'gratitude', 'checklist', 'stress'],
+            gender:              state.gender   || null,
+            location:            state.location || null,
+            field:               state.fieldOther || state.field || null,
+          }),
+        ]);
+      }
+    } catch {
+      showToast("Couldn't save your preferences — you can update them in Settings", 'error');
     }
     window.location.href = '/dashboard';
   }

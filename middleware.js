@@ -6,6 +6,15 @@ const AUTH_PATHS = ['/login', '/signup']
 // Routes where we skip the onboarding check to avoid redirect loops
 const ONBOARDING_EXEMPT = ['/onboarding', '/login', '/signup']
 
+// Forward any auth cookies Supabase wrote (e.g. token refresh) onto a redirect response
+// so the refreshed session isn't lost and the next request doesn't flash to /login.
+function withCookies(redirectResponse, supabaseResponse) {
+  supabaseResponse.cookies.getAll().forEach(cookie => {
+    redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
+  })
+  return redirectResponse
+}
+
 export async function middleware(request) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -40,14 +49,14 @@ export async function middleware(request) {
   if (isProtected && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    return withCookies(NextResponse.redirect(url), supabaseResponse)
   }
 
   // Has session → bounce away from auth pages
   if (isAuthPage && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    return withCookies(NextResponse.redirect(url), supabaseResponse)
   }
 
   // Has session on a protected page → check onboarding completion
@@ -62,7 +71,7 @@ export async function middleware(request) {
     if (profile && profile.onboarding_completed === false) {
       const url = request.nextUrl.clone()
       url.pathname = '/onboarding'
-      return NextResponse.redirect(url)
+      return withCookies(NextResponse.redirect(url), supabaseResponse)
     }
   }
 
