@@ -1,12 +1,18 @@
-export default function ShareableCard({ userName = 'Alex Lewis', dateRange = 'Week of May 19–25, 2026', stats = {}, score = 75 }) {
+export default function ShareableCard({
+  userName = 'You',
+  dateRange = 'Week of May 19–25, 2026',
+  stats = {},
+  score = 0,
+}) {
   const {
-    avgSleep = '7.4h',
-    daysActive = '5/7',
-    daysExercised = '4',
-    streak = 'Day 8',
+    avgSleep = '—',
+    daysActive = '—',
+    daysExercised = '—',
+    methodName = null,
   } = stats;
 
-  const scoreLabel = score >= 80 ? 'Great week overall' : score >= 60 ? 'Good week overall' : 'Room to grow';
+  const scoreLabel =
+    score >= 80 ? 'Great week overall' : score >= 60 ? 'Good week overall' : 'Room to grow';
 
   return (
     <div className="share-card">
@@ -29,12 +35,14 @@ export default function ShareableCard({ userName = 'Alex Lewis', dateRange = 'We
         </div>
         <div className="share-stat">
           <div className="share-stat-val">{daysExercised}</div>
-          <div className="share-stat-lbl">Days Exercised</div>
+          <div className="share-stat-lbl">Exercised</div>
         </div>
-        <div className="share-stat">
-          <div className="share-stat-val">{streak}</div>
-          <div className="share-stat-lbl">Streak</div>
-        </div>
+        {methodName && (
+          <div className="share-stat">
+            <div className="share-stat-val" style={{ fontSize: '0.75rem', lineHeight: 1.3 }}>{methodName}</div>
+            <div className="share-stat-lbl">Method</div>
+          </div>
+        )}
       </div>
 
       <div className="share-card-score">

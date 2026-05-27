@@ -10,6 +10,7 @@ import KnowledgeSection from "../../../components/sections/KnowledgeSection";
 import LifestyleSection from "../../../components/sections/LifestyleSection";
 import TrackingSection from "../../../components/sections/TrackingSection";
 import SettingsView from "../../../components/settings/SettingsView";
+import ShareModal from "../../../components/ui/ShareModal";
 
 const SECTION_MAP = {
   financial: FinanceSection,
@@ -21,6 +22,7 @@ const SECTION_MAP = {
 export default function DashboardPage() {
   const [currentView, setCurrentView] = useState("home");
   const [currentSection, setCurrentSection] = useState(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   function setView(view) {
     setCurrentView(view);
@@ -49,6 +51,7 @@ export default function DashboardPage() {
           currentView={currentView}
           setView={setView}
           setSection={setSection}
+          onShare={() => setShareOpen(true)}
         />
 
         <div className="view-content">
@@ -79,6 +82,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      <ShareModal isOpen={shareOpen} onClose={() => setShareOpen(false)} />
     </div>
   );
 }

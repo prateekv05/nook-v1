@@ -12,12 +12,13 @@
 ## SESSION STATE
 *(Claude updates this block at the end of every session)*
 
-**Current Phase:** 13 — Settings + Share Wired (in progress)
-**Last completed task:** 13.1 — Settings all sections saved to Supabase
+**Current Phase:** 13 — Settings + Share Wired (complete)
+**Last completed task:** 13.2 — ShareableCard with real data
 **In progress:** None
-**Next task:** 13.2 — ShareableCard with real data
+**Next task:** 14.1 — Skeleton loading states everywhere
 **Decisions made this session:**
 - 13.1 `src/app/(app)/settings/page.jsx` — On mount: parallel fetch `profiles` + `user_preferences`, pre-fill all state, `loading` flag disables Save button with "Loading…" text. `useEffect` has try/catch/finally + mounted guard to prevent stale setState on unmount. Save button: parallel `profiles.update` (first_name, last_name, timezone) + `user_preferences.upsert` (theme, news_topics[], learning_topics[], lifestyle_prefs jsonb, income_goal_amount, income_goal_period, notification_preferences jsonb). Theme applies immediately via `setTheme` on click, DB-persisted on Save. Toast "Settings saved ✓" on success, "Couldn't save — please try again" on error.
+- 13.2 `src/components/ui/ShareModal.jsx` — On open: parallel fetch profiles (name), daily_tracking (Mon–Sun avg sleep, days with score≥70, days exercise_mins>0, today's day_score), method_of_week (current method name). Skeleton shown while loading. `handleSaveImage` → toast "Coming soon". `handleCopyLink` → navigator.clipboard → toast "Link copied ✓". ShareableCard updated: methodName stat shown conditionally instead of streak.
 **Blockers:** None
 
 ---
@@ -108,7 +109,7 @@
 
 ### Phase 13 — Settings + Share Wired
 - [x] 13.1 Settings all sections saved to Supabase
-- [ ] 13.2 ShareableCard with real data
+- [x] 13.2 ShareableCard with real data
 
 ### Phase 14 — Polish
 - [ ] 14.1 Skeleton loading states everywhere

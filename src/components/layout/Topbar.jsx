@@ -9,7 +9,7 @@ function formatDate(d) {
   return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-export default function Topbar({ currentView, setView, setSection }) {
+export default function Topbar({ currentView, setView, setSection, onShare }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const inputRef = useRef(null);
   const today = formatDate(new Date());
@@ -73,7 +73,7 @@ export default function Topbar({ currentView, setView, setSection }) {
         </div>
 
         {/* Share */}
-        <button className="log-btn-ghost" aria-label="Share">
+        <button className="log-btn-ghost" aria-label="Share" onClick={onShare}>
           <i className="ph-bold ph-share-network" />
           <span>Share</span>
         </button>
