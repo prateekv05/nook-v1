@@ -3,12 +3,6 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 
-const FALLBACK_ITEMS = [
-  { id: 1, label: 'Morning workout',   done: false },
-  { id: 2, label: 'Review finances',   done: false },
-  { id: 3, label: 'Read 20 minutes',   done: false },
-]
-
 const TRACK = [
   { label: 'Water',      value: '5/8',  pct: 62, color: 'var(--know-col)' },
   { label: 'Sleep',      value: '7.5h', pct: 94, color: 'var(--life-col)' },
@@ -19,7 +13,6 @@ const TRACK = [
 ]
 
 const METHOD_DAYS = 7
-const METHOD_DONE = 3
 
 const STRESS_EMOJIS = ['😌', '🙂', '😐', '😕', '😤']
 
@@ -37,9 +30,11 @@ function ChecklistSkeleton() {
 }
 
 export default function LifestyleColumn({ onExpand }) {
-  const [items, setItems] = useState(FALLBACK_ITEMS)
-  const [stress, setStress] = useState(1)
+  const [items, setItems] = useState([])
+  const [stress, setStress] = useState(null)
   const [checklistLoading, setChecklistLoading] = useState(true)
+  const [checklistError, setChecklistError] = useState(false)
+  const [userId, setUserId] = useState(null)
 
   useEffect(() => {
     let mounted = true
@@ -47,19 +42,23 @@ export default function LifestyleColumn({ onExpand }) {
       try {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        const { data } = await supabase
-          .from('checklist_items')
-          .select('id, text, is_done, is_active')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-          .order('position')
-          .limit(3)
-        if (mounted && data && data.length > 0) {
-          setItems(data.map(i => ({ id: i.id, label: i.text, done: i.is_done })))
-        }
+        if (!user) { if (mounted) setChecklistLoading(false); return }
+        if (mounted) setUserId(user.id)
+
+        const today = new Date().toISOString().slice(0, 10)
+        const isEvening = new Date().getHours() >= 12
+
+        const [{ data }, { data: tracking }] = await Promise.all([
+          supabase.from('checklist_items').select('id, text, is_done, is_active').eq('user_id', user.id).eq('is_active', true).order('position').limit(3),
+          supabase.from('daily_tracking').select('stress_morning, stress_evening').eq('user_id', user.id).eq('date', today).single(),
+        ])
+
+        if (!mounted) return
+        setItems((data || []).map(i => ({ id: i.id, label: i.text, done: i.is_done })))
+        const saved = isEvening ? tracking?.stress_evening : tracking?.stress_morning
+        if (saved != null) setStress(saved)
       } catch {
-        // keep fallback items
+        if (mounted) setChecklistError(true)
       } finally {
         if (mounted) setChecklistLoading(false)
       }
@@ -74,7 +73,25 @@ export default function LifestyleColumn({ onExpand }) {
 
   function toggle(id, e) {
     e.stopPropagation()
-    setItems(prev => prev.map(i => i.id === id ? { ...i, done: !i.done } : i))
+    let newDone
+    setItems(prev => prev.map(i => {
+      if (i.id !== id) return i
+      newDone = !i.done
+      return { ...i, done: newDone }
+    }))
+    if (!userId) return
+    const supabase = createClient()
+    supabase.from('checklist_items').update({ is_done: newDone }).eq('id', id).eq('user_id', userId)
+  }
+
+  async function handleStress(i, e) {
+    e.stopPropagation()
+    setStress(i)
+    if (!userId) return
+    const supabase = createClient()
+    const today = new Date().toISOString().slice(0, 10)
+    const field = new Date().getHours() >= 12 ? 'stress_evening' : 'stress_morning'
+    await supabase.from('daily_tracking').upsert({ user_id: userId, date: today, [field]: i }, { onConflict: 'user_id,date' })
   }
 
   return (
@@ -101,10 +118,10 @@ export default function LifestyleColumn({ onExpand }) {
             <div className="method-quote">&ldquo;Work in focused 25-min sprints — then rest. Protect your energy, not just your time.&rdquo;</div>
             <div className="method-days">
               {Array.from({ length: METHOD_DAYS }, (_, i) => (
-                <div key={i} className={`md${i < METHOD_DONE ? ' done' : ''}`} />
+                <div key={i} className="md" />
               ))}
             </div>
-            <div className="method-day-label">Day {METHOD_DONE} of {METHOD_DAYS} — {METHOD_DAYS - METHOD_DONE} days remaining</div>
+            <div className="method-day-label">Start in the Lifestyle tab</div>
           </div>
         </div>
 
@@ -121,6 +138,14 @@ export default function LifestyleColumn({ onExpand }) {
               </div>
               <ChecklistSkeleton />
             </>
+          ) : checklistError ? (
+            <div style={{ fontSize: 12, color: 'var(--error-col)', padding: '6px 0', lineHeight: 1.5 }}>
+              Couldn't load checklist. Try refreshing.
+            </div>
+          ) : items.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '6px 0', lineHeight: 1.5 }}>
+              No tasks yet — add them in the Lifestyle tab.
+            </div>
           ) : (
             <>
               <div className="cl-progress">
@@ -156,7 +181,7 @@ export default function LifestyleColumn({ onExpand }) {
                 key={i}
                 className={`s-emoji-btn${stress === i ? ' sel' : ''}`}
                 style={{ width: 26, height: 26, fontSize: 13, borderRadius: 6 }}
-                onClick={e => { e.stopPropagation(); setStress(i) }}
+                onClick={e => handleStress(i, e)}
               >
                 {emoji}
               </button>

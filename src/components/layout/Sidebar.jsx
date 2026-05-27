@@ -21,6 +21,7 @@ const THEMES = [
 export default function Sidebar({ currentView, setView, currentSection, setSection, isOpen = false }) {
   const { theme, setTheme } = useTheme();
   const [profile, setProfile] = useState(null);
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -39,13 +40,13 @@ export default function Sidebar({ currentView, setView, currentSection, setSecti
 
   const firstName = profile?.first_name || '';
   const lastName  = profile?.last_name  || '';
-  const displayName = [firstName, lastName].filter(Boolean).join(' ') || 'User';
+  const displayName = firstName || 'User';
   const initials    = ([firstName[0], lastName[0]].filter(Boolean).join('') || 'U').toUpperCase();
 
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = "/onboarding";
+    window.location.href = "/";
   }
 
   function handleNav(item) {
@@ -139,15 +140,40 @@ export default function Sidebar({ currentView, setView, currentSection, setSecti
       {/* User row */}
       <div className="s-user-row">
         <div className="s-avatar">{initials}</div>
-        <span className="s-user-name">{displayName}</span>
-        <button
-          className="s-logout-btn"
-          onClick={handleLogout}
-          aria-label="Log out"
-          title="Log out"
-        >
-          <i className="ph-bold ph-sign-out" />
-        </button>
+        {confirmingLogout ? (
+          <>
+            <span style={{ flex: 1, fontSize: 12, color: 'var(--text-2)' }}>Sign out?</span>
+            <button
+              className="s-logout-btn"
+              onClick={handleLogout}
+              aria-label="Confirm sign out"
+              title="Confirm"
+              style={{ color: 'var(--error-col)' }}
+            >
+              <i className="ph-bold ph-check" />
+            </button>
+            <button
+              className="s-logout-btn"
+              onClick={() => setConfirmingLogout(false)}
+              aria-label="Cancel sign out"
+              title="Cancel"
+            >
+              <i className="ph-bold ph-x" />
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="s-user-name">{displayName}</span>
+            <button
+              className="s-logout-btn"
+              onClick={() => setConfirmingLogout(true)}
+              aria-label="Log out"
+              title="Log out"
+            >
+              <i className="ph-bold ph-sign-out" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

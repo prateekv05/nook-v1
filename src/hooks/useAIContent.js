@@ -24,6 +24,7 @@ export function useAIContent({ type, key, userContext }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type, key, userContext }),
         })
+        if (!res.ok) throw new Error(`ai-content ${res.status}`)
         const data = await res.json()
         if (!cancelled) setContent(data.content ?? null)
       } catch (e) {

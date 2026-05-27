@@ -74,7 +74,6 @@ export async function GET(request) {
         expires_at:    expiresAt30s(),
       }, { onConflict: 'content_key' })
   } catch (err) {
-    console.error('[stocks] FMP fetch failed:', err.message)
     // Return last cached data even if stale
     const { data: stale } = await supabaseAdmin
       .from('ai_content_cache')

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useAIContent } from '@/hooks/useAIContent'
+import { createClient } from '@/lib/supabase'
 
 function parseWOD(text) {
   const word = text?.match(/WORD:\s*(.+)/i)?.[1]?.trim() ?? null
@@ -15,18 +16,10 @@ function AISkeleton({ height = 36 }) {
   )
 }
 
-const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'TSLA']
-
 const SENTIMENT = [
   { sym: 'AAPL', label: 'Bullish', cls: 'bull' },
   { sym: 'MSFT', label: 'Neutral', cls: 'neut' },
   { sym: 'TSLA', label: 'Bullish', cls: 'bull' },
-]
-
-const EXPENSES = [
-  { name: 'Coffee & breakfast',  cat: 'Food',          amt: '−$12.50' },
-  { name: 'Uber to office',      cat: 'Transport',     amt: '−$8.20'  },
-  { name: 'Netflix',             cat: 'Entertainment', amt: '−$15.99' },
 ]
 
 function TickerSkeleton() {
@@ -49,29 +42,35 @@ function TickerSkeleton() {
 }
 
 export default function FinanceColumn({ onExpand }) {
-  const [stockMap, setStockMap] = useState({})
-  const [loading, setLoading]   = useState(true)
+  const [tickers, setTickers]       = useState([])
+  const [stockMap, setStockMap]     = useState({})
+  const [loading, setLoading]       = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [stockError, setStockError] = useState(false)
   const intervalRef = useRef(null)
 
   const todayKey = new Date().toISOString().slice(0, 10)
-  const { content: wodContent, loading: wodLoading } = useAIContent({ type: 'word-of-day', key: `word-of-day-${todayKey}` })
-  const { content: tipContent, loading: tipLoading } = useAIContent({ type: 'daily-tip',   key: `daily-tip-${todayKey}` })
+  const { content: wodContent, loading: wodLoading, error: wodError } = useAIContent({ type: 'word-of-day', key: `word-of-day-${todayKey}` })
+  const { content: tipContent, loading: tipLoading, error: tipError } = useAIContent({ type: 'daily-tip',   key: `daily-tip-${todayKey}` })
   const wod = parseWOD(wodContent)
+  const wodFailed = !wodLoading && (wodError || (!wod.word && !wod.def))
 
-  async function fetchStocks(isRefresh = false) {
+  async function fetchStocks(syms, isRefresh = false) {
+    if (!syms.length) { setLoading(false); return }
     if (isRefresh) setRefreshing(true)
+    else setLoading(true)
     try {
-      const res = await fetch(`/api/stocks?tickers=${DEFAULT_TICKERS.join(',')}`)
-      if (!res.ok) return
+      const res = await fetch(`/api/stocks?tickers=${syms.join(',')}`)
+      if (!res.ok) { setStockError(true); return }
       const { stocks } = await res.json()
       if (Array.isArray(stocks)) {
         const map = {}
         stocks.forEach(s => { map[s.symbol] = s })
         setStockMap(map)
+        setStockError(false)
       }
     } catch {
-      // keep last data on error
+      setStockError(true)
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -79,8 +78,27 @@ export default function FinanceColumn({ onExpand }) {
   }
 
   useEffect(() => {
-    fetchStocks()
-    intervalRef.current = setInterval(() => fetchStocks(true), 30_000)
+    async function loadWatchlist() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { setLoading(false); return }
+        const { data } = await supabase
+          .from('watchlist')
+          .select('ticker')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+        const syms = (data || []).map(r => r.ticker)
+        setTickers(syms)
+        clearInterval(intervalRef.current)
+        fetchStocks(syms)
+        intervalRef.current = setInterval(() => fetchStocks(syms, true), 30_000)
+      } catch {
+        setLoading(false)
+      }
+    }
+    loadWatchlist()
     return () => clearInterval(intervalRef.current)
   }, [])
 
@@ -105,11 +123,18 @@ export default function FinanceColumn({ onExpand }) {
           <div className="sub-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             Watchlist
             {refreshing && <span className="stock-refresh-dot" />}
+            {stockError && !loading && (
+              <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 400, marginLeft: 2 }}>· stale</span>
+            )}
           </div>
           {loading ? (
             <TickerSkeleton />
+          ) : tickers.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '8px 0', lineHeight: 1.5 }}>
+              No stocks yet — add tickers in the Finance tab.
+            </div>
           ) : (
-            DEFAULT_TICKERS.map(sym => {
+            tickers.map(sym => {
               const s = stockMap[sym]
               return (
                 <div className="ticker-row" key={sym}>
@@ -139,10 +164,12 @@ export default function FinanceColumn({ onExpand }) {
               <AISkeleton height={14} />
               <AISkeleton height={32} />
             </div>
+          ) : wodFailed ? (
+            <div style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5 }}>Couldn't load today's word.</div>
           ) : (
             <>
-              <div className="word-title">{wod.word || 'Dollar-Cost Averaging'}</div>
-              <div className="word-def">{wod.def || 'Investing a fixed amount regularly regardless of price — smoothing out market volatility over time.'}</div>
+              <div className="word-title">{wod.word}</div>
+              <div className="word-def">{wod.def}</div>
             </>
           )}
         </div>
@@ -152,8 +179,10 @@ export default function FinanceColumn({ onExpand }) {
           <div className="sub-label">Daily tip</div>
           {tipLoading ? (
             <AISkeleton height={36} />
+          ) : tipError || !tipContent ? (
+            <div style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5 }}>Couldn't load today's tip.</div>
           ) : (
-            <div className="tip-text">&ldquo;{tipContent || 'Review your subscriptions monthly — the average person forgets 3 active subscriptions.'}&rdquo;</div>
+            <div className="tip-text">&ldquo;{tipContent}&rdquo;</div>
           )}
         </div>
 
@@ -171,30 +200,10 @@ export default function FinanceColumn({ onExpand }) {
         </div>
 
         {/* Expense log */}
-        <div className="sub-section" onClick={e => e.stopPropagation()}>
+        <div className="sub-section">
           <div className="sub-label">Expense log</div>
-          <div className="hero-exp-list">
-            {EXPENSES.map(e => (
-              <div className="hero-exp-row" key={e.name}>
-                <span className="hero-exp-name">{e.name}</span>
-                <span className="hero-exp-cat">{e.cat}</span>
-                <span className="hero-exp-amt">{e.amt}</span>
-              </div>
-            ))}
-          </div>
-          <div className="hero-exp-total">Today: <span>−$36.69</span></div>
-          <div className="e-add">
-            <input className="e-input" placeholder="$0.00" style={{ width: 60 }} />
-            <select className="e-input" style={{ width: 90 }}>
-              <option>Food</option>
-              <option>Transport</option>
-              <option>Entertainment</option>
-              <option>Health</option>
-              <option>Utilities</option>
-              <option>Other</option>
-            </select>
-            <input className="e-input" placeholder="Note" style={{ flex: 1 }} />
-            <button className="e-btn-g">Add</button>
+          <div style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5 }}>
+            Log expenses in the Finance tab.
           </div>
         </div>
       </div>

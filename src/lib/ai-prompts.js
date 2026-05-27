@@ -3,7 +3,7 @@ export const prompts = {
     'You are a friendly financial coach. Write one practical money habit in 1-2 sentences. Focus on saving, spending wisely, or growing income. Second person. No markdown.',
 
   wordOfDay: () =>
-    'Choose one financial term and explain it plainly. First sentence: term + one-line definition. Second sentence: real-world example. No labels. No markdown.',
+    'Choose one finance or investing term (e.g. P/E ratio, EBITDA, hedge, liquidity, amortisation, basis points). Output exactly two lines — no other text:\nWORD: <term>\nDEFINITION: <one-sentence plain-English definition with a real-world example>',
 
   didYouKnow: () =>
     'Write one surprising fact from science, history, psychology, or nature. 1-2 sentences. Genuinely interesting, not generic. No markdown.',

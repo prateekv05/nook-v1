@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 const PROTECTED_PATHS = ['/dashboard', '/settings']
 const AUTH_PATHS = ['/login', '/signup']
 // Routes where we skip the onboarding check to avoid redirect loops
-const ONBOARDING_EXEMPT = ['/onboarding', '/login', '/signup']
+const ONBOARDING_EXEMPT = ['/', '/onboarding', '/login', '/signup']
 
 // Forward any auth cookies Supabase wrote (e.g. token refresh) onto a redirect response
 // so the refreshed session isn't lost and the next request doesn't flash to /login.

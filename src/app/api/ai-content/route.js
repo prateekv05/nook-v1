@@ -39,19 +39,20 @@ export async function POST(request) {
   }
 
   const supabase = await createSupabaseServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const isShared = SHARED_TYPES.has(type)
-  const userId = isShared ? null : session.user.id
+  const userId = isShared ? null : user.id
 
-  // Cache lookup
+  // Cache lookup — filter on content_type too so shared/personal entries never cross-contaminate
   let cacheQuery = supabaseAdmin
     .from('ai_content_cache')
     .select('content')
     .eq('content_key', key)
+    .eq('content_type', type)
     .gt('expires_at', new Date().toISOString())
 
   if (isShared) {
@@ -78,7 +79,6 @@ export async function POST(request) {
     })
     aiText = message.content[0]?.text ?? ''
   } catch (err) {
-    console.error('[ai-content] Anthropic error:', err.status ?? err.message)
     return NextResponse.json(
       { error: 'AI generation failed. Please try again later.' },
       { status: 500 }

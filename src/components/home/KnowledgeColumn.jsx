@@ -85,12 +85,14 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
   const [topics, setTopics] = useState(FALLBACK_TOPICS)
   const [newsLoading, setNewsLoading] = useState(true)
   const [newsError, setNewsError] = useState(false)
+  const [newsAuthError, setNewsAuthError] = useState(false)
+  const [usingFallback, setUsingFallback] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
 
   const todayKey   = new Date().toISOString().slice(0, 10)
   const firstTopic = learningTopics[0] || 'general knowledge'
-  const { content: dykContent,     loading: dykLoading     } = useAIContent({ type: 'did-you-know', key: `did-you-know-${todayKey}` })
-  const { content: conceptContent, loading: conceptLoading } = useAIContent({ type: 'concept', key: `concept-${firstTopic}-${todayKey}`, userContext: { topics: firstTopic } })
+  const { content: dykContent,     loading: dykLoading,     error: dykError     } = useAIContent({ type: 'did-you-know', key: `did-you-know-${todayKey}` })
+  const { content: conceptContent, loading: conceptLoading, error: conceptError } = useAIContent({ type: 'concept', key: `concept-${firstTopic}-${todayKey}`, userContext: { topics: firstTopic } })
 
   useEffect(() => {
     const queryTopics = learningTopics.length > 0
@@ -98,8 +100,10 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
       : 'technology,science,business'
 
     setNewsError(false)
+    setNewsAuthError(false)
+    setUsingFallback(false)
     fetch(`/api/news?topics=${queryTopics}`)
-      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => {
         const results = data.results || {}
         const updated = Object.entries(results)
@@ -117,9 +121,11 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
         if (updated.length > 0) {
           setTopics(updated)
           setActive(Object.fromEntries(updated.map(t => [t.id, 0])))
+        } else {
+          setUsingFallback(true)
         }
       })
-      .catch(() => { setNewsError(true) })
+      .catch(status => { if (status === 401) setNewsAuthError(true); else setNewsError(true) })
       .finally(() => setNewsLoading(false))
   }, [learningTopics.join(','), retryCount]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -144,7 +150,10 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
       </div>
 
       <div className="hero-body know-hero-scroll">
-        <div className="sub-label" style={{ marginBottom: 8 }}>Today&rsquo;s news</div>
+        <div className="sub-label" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+          Today&rsquo;s news
+          {usingFallback && <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 400 }}>· sample</span>}
+        </div>
 
         {newsLoading ? (
           <>
@@ -153,6 +162,10 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
             <NewsItemSkeleton />
             <NewsItemSkeleton />
           </>
+        ) : newsAuthError ? (
+          <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '10px 0', lineHeight: 1.5 }}>
+            Sign in again to load news.
+          </div>
         ) : newsError ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 0', textAlign: 'center' }}>
             <i className="ph-bold ph-wifi-x" style={{ fontSize: 22, color: 'var(--text-3)' }} />
@@ -200,8 +213,10 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
           <div className="sub-label" style={{ marginBottom: 8 }}>Did you know?</div>
           {dykLoading ? (
             <AISkeleton height={44} />
+          ) : dykError || !dykContent ? (
+            <div style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5 }}>Couldn&rsquo;t load today&rsquo;s fact.</div>
           ) : (
-            <div className="did-you-know">&ldquo;{dykContent || 'The average person makes 35,000 decisions a day — most of them unconsciously. Simplifying your environment dramatically reduces decision fatigue.'}&rdquo;</div>
+            <div className="did-you-know">&ldquo;{dykContent}&rdquo;</div>
           )}
         </div>
 
@@ -209,8 +224,10 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
           <div className="sub-label" style={{ marginBottom: 8 }}>Concept of the day</div>
           {conceptLoading ? (
             <AISkeleton height={52} />
+          ) : conceptError || !conceptContent ? (
+            <div style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5 }}>Couldn&rsquo;t load today&rsquo;s concept.</div>
           ) : (
-            <div className="concept-def">{conceptContent || 'First Principles Thinking — Break problems down to their most fundamental truths and reason upward, rather than by analogy.'}</div>
+            <div className="concept-def">{conceptContent}</div>
           )}
         </div>
       </div>

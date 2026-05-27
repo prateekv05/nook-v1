@@ -28,10 +28,10 @@ const THEMES = [
 ];
 
 /* ── Helpers ── */
-function Toggle({ checked, onChange }) {
+function Toggle({ checked, onChange, disabled }) {
   return (
     <label className="toggle-sw">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} disabled={disabled} />
       <span className="toggle-slider" />
     </label>
   );
@@ -54,6 +54,10 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { showToast } = useToast();
 
+  const [localTheme, setLocalTheme] = useState(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem('nook-theme') || 'calm') : 'calm'
+  );
+
   const [firstName, setFirstName]     = useState('Alex');
   const [lastName, setLastName]       = useState('Lewis');
   const [timezone, setTimezone]       = useState('UTC');
@@ -67,6 +71,7 @@ export default function SettingsPage() {
   const [notifs, setNotifs] = useState({ morning: false, evening: false, weekly: false });
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
   const [userId, setUserId]   = useState(null);
 
   useEffect(() => {
@@ -93,7 +98,7 @@ export default function SettingsPage() {
         }
 
         if (prefs) {
-          if (prefs.theme) setTheme(prefs.theme);
+          if (prefs.theme) setLocalTheme(prefs.theme);
           if (prefs.news_topics?.length)      setNewsTopics(new Set(prefs.news_topics));
           if (prefs.learning_topics?.length)  setLearnTopics(new Set(prefs.learning_topics));
           if (prefs.lifestyle_prefs)          setLifestyle(prefs.lifestyle_prefs);
@@ -102,7 +107,7 @@ export default function SettingsPage() {
           if (prefs.notification_preferences) setNotifs(prefs.notification_preferences);
         }
       } catch (err) {
-        // silently fail — user sees stale defaults, not an error screen
+        if (mounted) showToast("Couldn't load your settings — showing defaults", 'error');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -122,10 +127,12 @@ export default function SettingsPage() {
 
   function handleTheme(t) {
     setTheme(t);
+    setLocalTheme(t);
   }
 
   async function handleSave() {
     if (!userId) return;
+    setSaving(true);
     const supabase = createClient();
     try {
       const [profileRes, prefsRes] = await Promise.all([
@@ -137,7 +144,7 @@ export default function SettingsPage() {
           .from('user_preferences')
           .upsert({
             user_id: userId,
-            theme,
+            theme: localTheme,
             news_topics: [...newsTopics],
             learning_topics: [...learnTopics],
             lifestyle_prefs: lifestyle,
@@ -153,6 +160,8 @@ export default function SettingsPage() {
       showToast('Settings saved ✓', 'success');
     } catch (err) {
       showToast("Couldn't save — please try again", 'error');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -164,13 +173,13 @@ export default function SettingsPage() {
         <div className="sett-card">
           <div className="sett-card-title">Account Details</div>
           <SettRow label="First name">
-            <input className="sett-input" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" />
+            <input className="sett-input" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" disabled={loading} />
           </SettRow>
           <SettRow label="Last name">
-            <input className="sett-input" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" />
+            <input className="sett-input" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" disabled={loading} />
           </SettRow>
           <SettRow label="Timezone" sub="Used for day score resets and reminders">
-            <select className="sett-input" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+            <select className="sett-input" value={timezone} onChange={(e) => setTimezone(e.target.value)} disabled={loading}>
               {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
             </select>
           </SettRow>
@@ -187,10 +196,10 @@ export default function SettingsPage() {
                   onClick={() => handleTheme(t.id)}
                   style={{
                     fontSize: 12, padding: '6px 14px', borderRadius: 8,
-                    border: theme === t.id ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
-                    background: theme === t.id ? 'var(--accent-bg)' : 'var(--input-bg)',
-                    color: theme === t.id ? 'var(--accent)' : 'var(--text-2)',
-                    fontWeight: theme === t.id ? 500 : 400,
+                    border: localTheme === t.id ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                    background: localTheme === t.id ? 'var(--accent-bg)' : 'var(--input-bg)',
+                    color: localTheme === t.id ? 'var(--accent)' : 'var(--text-2)',
+                    fontWeight: localTheme === t.id ? 500 : 400,
                     cursor: 'pointer', fontFamily: 'var(--font-sans)',
                     transition: 'all 0.2s var(--ease-spring)',
                   }}
@@ -214,6 +223,7 @@ export default function SettingsPage() {
                 key={t}
                 className={`topic-pill${newsTopics.has(t) ? ' sel' : ''}`}
                 onClick={() => togglePill(newsTopics, setNewsTopics, t, 5)}
+                disabled={loading}
               >
                 {t}
               </button>
@@ -236,6 +246,7 @@ export default function SettingsPage() {
                 key={t}
                 className={`topic-pill${learnTopics.has(t) ? ' sel-life' : ''}`}
                 onClick={() => togglePill(learnTopics, setLearnTopics, t, 5)}
+                disabled={loading}
               >
                 {t}
               </button>
@@ -250,16 +261,16 @@ export default function SettingsPage() {
         <div className="sett-card">
           <div className="sett-card-title">Lifestyle Features</div>
           <SettRow label="Journal" sub="Daily free-write with AI prompts">
-            <Toggle checked={lifestyle.journal} onChange={(v) => setLifestyle((p) => ({ ...p, journal: v }))} />
+            <Toggle checked={lifestyle.journal} onChange={(v) => setLifestyle((p) => ({ ...p, journal: v }))} disabled={loading} />
           </SettRow>
           <SettRow label="Gratitude Log" sub="Three daily gratitude entries">
-            <Toggle checked={lifestyle.gratitude} onChange={(v) => setLifestyle((p) => ({ ...p, gratitude: v }))} />
+            <Toggle checked={lifestyle.gratitude} onChange={(v) => setLifestyle((p) => ({ ...p, gratitude: v }))} disabled={loading} />
           </SettRow>
           <SettRow label="Daily Checklist" sub="Task tracking with calendar history">
-            <Toggle checked={lifestyle.checklist} onChange={(v) => setLifestyle((p) => ({ ...p, checklist: v }))} />
+            <Toggle checked={lifestyle.checklist} onChange={(v) => setLifestyle((p) => ({ ...p, checklist: v }))} disabled={loading} />
           </SettRow>
           <SettRow label="Stress Check-in" sub="Check in anytime — morning, midday or evening">
-            <Toggle checked={lifestyle.stress} onChange={(v) => setLifestyle((p) => ({ ...p, stress: v }))} />
+            <Toggle checked={lifestyle.stress} onChange={(v) => setLifestyle((p) => ({ ...p, stress: v }))} disabled={loading} />
           </SettRow>
         </div>
 
@@ -276,8 +287,9 @@ export default function SettingsPage() {
                 value={incomeAmt}
                 onChange={(e) => setIncomeAmt(e.target.value)}
                 style={{ minWidth: 110, fontVariantNumeric: 'tabular-nums' }}
+                disabled={loading}
               />
-              <select className="sett-input" value={incomePeriod} onChange={(e) => setIncomePeriod(e.target.value)} style={{ minWidth: 100 }}>
+              <select className="sett-input" value={incomePeriod} onChange={(e) => setIncomePeriod(e.target.value)} style={{ minWidth: 100 }} disabled={loading}>
                 <option>Monthly</option>
                 <option>Yearly</option>
               </select>
@@ -289,13 +301,13 @@ export default function SettingsPage() {
         <div className="sett-card">
           <div className="sett-card-title">Notifications</div>
           <SettRow label="Daily check-in" sub="Morning reminder to log your day">
-            <Toggle checked={notifs.morning} onChange={(v) => setNotifs((p) => ({ ...p, morning: v }))} />
+            <Toggle checked={notifs.morning} onChange={(v) => setNotifs((p) => ({ ...p, morning: v }))} disabled={loading} />
           </SettRow>
           <SettRow label="Weekly reflection" sub="New content alert every Monday">
-            <Toggle checked={notifs.weekly} onChange={(v) => setNotifs((p) => ({ ...p, weekly: v }))} />
+            <Toggle checked={notifs.weekly} onChange={(v) => setNotifs((p) => ({ ...p, weekly: v }))} disabled={loading} />
           </SettRow>
           <SettRow label="Streak alerts" sub="Get notified when your streak is at risk">
-            <Toggle checked={notifs.evening} onChange={(v) => setNotifs((p) => ({ ...p, evening: v }))} />
+            <Toggle checked={notifs.evening} onChange={(v) => setNotifs((p) => ({ ...p, evening: v }))} disabled={loading} />
           </SettRow>
         </div>
 
@@ -329,10 +341,10 @@ export default function SettingsPage() {
         <button
           className="sett-save-btn"
           onClick={handleSave}
-          disabled={loading}
-          style={{ opacity: loading ? 0.5 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+          disabled={loading || saving}
+          style={{ opacity: (loading || saving) ? 0.6 : 1, cursor: (loading || saving) ? 'not-allowed' : 'pointer' }}
         >
-          {loading ? 'Loading…' : 'Save changes'}
+          {loading ? 'Loading…' : saving ? 'Saving…' : 'Save changes'}
         </button>
 
       </div>

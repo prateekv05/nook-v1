@@ -26,7 +26,6 @@ function formatHistoryDate(iso) {
   return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 const METHOD_DAYS = 7
-const METHOD_DONE = 3
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
@@ -81,7 +80,7 @@ export default function LifestyleSection({ onBack }) {
   const [calLoading, setCalLoading] = useState(false)
 
   // Method
-  const [doneDays, setDoneDays]     = useState(METHOD_DONE)
+  const [doneDays, setDoneDays]     = useState(0)
   const [stars, setStars]           = useState(3)
   const [reflection, setReflection] = useState('')
 

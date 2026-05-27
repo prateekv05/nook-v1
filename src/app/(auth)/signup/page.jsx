@@ -64,7 +64,7 @@ export default function SignupPage() {
     // Session exists (email confirmation disabled in Supabase settings).
     // Update profile and continue to onboarding.
     const user = data.user
-    await supabase.from('profiles').upsert({
+    const { error: profileError } = await supabase.from('profiles').upsert({
       id: user.id,
       first_name: firstName.trim(),
       email,
@@ -73,6 +73,12 @@ export default function SignupPage() {
       is_pro: true,
       pro_trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
     })
+
+    if (profileError) {
+      setSubmitError('Account created but profile setup failed. Please try signing in.')
+      setLoading(false)
+      return
+    }
 
     router.push('/onboarding')
   }

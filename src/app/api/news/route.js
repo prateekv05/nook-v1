@@ -53,8 +53,8 @@ export async function GET(request) {
   }
 
   const supabase = await createSupabaseServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -82,7 +82,6 @@ export async function GET(request) {
     try {
       articles = await fetchFromNewsData(query)
     } catch (err) {
-      console.error(`[news] fetch failed for topic "${topic}":`, err.message)
       results[topic] = []
       return
     }
