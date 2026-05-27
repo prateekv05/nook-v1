@@ -1,10 +1,8 @@
 'use client'
 
-const TICKERS = [
-  { sym: 'AAPL', name: 'Apple Inc.',  price: '$189.42', change: '+1.2%',  up: true  },
-  { sym: 'MSFT', name: 'Microsoft',   price: '$412.18', change: '-0.4%',  up: false },
-  { sym: 'TSLA', name: 'Tesla',       price: '$185.60', change: '+3.1%',  up: true  },
-]
+import { useState, useEffect, useRef } from 'react'
+
+const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'TSLA']
 
 const SENTIMENT = [
   { sym: 'AAPL', label: 'Bullish', cls: 'bull' },
@@ -18,7 +16,56 @@ const EXPENSES = [
   { name: 'Netflix',             cat: 'Entertainment', amt: '−$15.99' },
 ]
 
+function TickerSkeleton() {
+  return (
+    <>
+      {[1, 2, 3].map(i => (
+        <div className="ticker-row" key={i} style={{ alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div className="ticker-skel-bar" style={{ width: 36, height: 11 }} />
+            <div className="ticker-skel-bar" style={{ width: 64, height: 9 }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end' }}>
+            <div className="ticker-skel-bar" style={{ width: 52, height: 11 }} />
+            <div className="ticker-skel-bar" style={{ width: 38, height: 9 }} />
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
+
 export default function FinanceColumn({ onExpand }) {
+  const [stockMap, setStockMap] = useState({})
+  const [loading, setLoading]   = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const intervalRef = useRef(null)
+
+  async function fetchStocks(isRefresh = false) {
+    if (isRefresh) setRefreshing(true)
+    try {
+      const res = await fetch(`/api/stocks?tickers=${DEFAULT_TICKERS.join(',')}`)
+      if (!res.ok) return
+      const { stocks } = await res.json()
+      if (Array.isArray(stocks)) {
+        const map = {}
+        stocks.forEach(s => { map[s.symbol] = s })
+        setStockMap(map)
+      }
+    } catch {
+      // keep last data on error
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchStocks()
+    intervalRef.current = setInterval(() => fetchStocks(true), 30_000)
+    return () => clearInterval(intervalRef.current)
+  }, [])
+
   return (
     <div className="hero-col" onClick={onExpand}>
       <div className="hero-header fin">
@@ -37,19 +84,33 @@ export default function FinanceColumn({ onExpand }) {
       <div className="hero-body">
         {/* Watchlist */}
         <div className="sub-section">
-          <div className="sub-label">Watchlist</div>
-          {TICKERS.map(t => (
-            <div className="ticker-row" key={t.sym}>
-              <div>
-                <div className="t-sym">{t.sym}</div>
-                <div className="t-name">{t.name}</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div className="t-price">{t.price}</div>
-                <div className={t.up ? 'up' : 'dn'}>{t.change}</div>
-              </div>
-            </div>
-          ))}
+          <div className="sub-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            Watchlist
+            {refreshing && <span className="stock-refresh-dot" />}
+          </div>
+          {loading ? (
+            <TickerSkeleton />
+          ) : (
+            DEFAULT_TICKERS.map(sym => {
+              const s = stockMap[sym]
+              return (
+                <div className="ticker-row" key={sym}>
+                  <div>
+                    <div className="t-sym">{sym}</div>
+                    <div className="t-name">{s?.name || sym}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className="t-price" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {s?.price ?? '—'}
+                    </div>
+                    <div className={s?.up ? 'up' : 'dn'} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {s?.changePercent ?? '—'}
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
         </div>
 
         {/* Word of the day */}

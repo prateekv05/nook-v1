@@ -30,6 +30,21 @@ export default function Step07Location({ state, setState, onNext }) {
 
       <form className="ob-form" noValidate onSubmit={e => { e.preventDefault(); if (canContinue) onNext(); }}>
         <div className="ob-field">
+          <label className="ob-field-label" htmlFor="s7-country">Country</label>
+          <input
+            className="ob-input"
+            type="text"
+            id="s7-country"
+            name="country"
+            placeholder="United States"
+            autoComplete="country-name"
+            autoCapitalize="words"
+            value={loc.country}
+            onChange={e => set('country', e.target.value)}
+          />
+        </div>
+
+        <div className="ob-field">
           <label className="ob-field-label" htmlFor="s7-city">City</label>
           <input
             className="ob-input"

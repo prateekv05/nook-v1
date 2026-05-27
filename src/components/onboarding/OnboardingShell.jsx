@@ -47,7 +47,7 @@ export default function OnboardingShell() {
     email: '',
     confirmEmail: '',
     gender: '',
-    location: { city: '', state: '', zip: '' },
+    location: { country: '', city: '', state: '', zip: '' },
     field: '',
     fieldOther: '',
     topics: [],

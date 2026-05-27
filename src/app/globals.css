@@ -2928,3 +2928,204 @@ button, a, [role="button"] {
 [data-theme="dark"]    .ob-plan-cta.pro { box-shadow: 0 4px 16px -4px rgba(232,160,85,0.40); }
 .ob-plan-cta.pro:hover  { opacity: 0.90; transform: translateY(-1px); }
 .ob-plan-cta.pro:active { transform: scale(0.97) translateY(0); }
+
+/* ════════════════════════════════════════
+   AUTH PAGES — Login / Signup
+   ════════════════════════════════════════ */
+.auth-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-bg);
+  padding: 24px 16px;
+  transition: background 0.3s;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 0;
+  padding: 32px 28px 28px;
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-bottom: 28px;
+}
+
+.auth-logo-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--sb-logo-bg);
+  color: var(--sb-logo-fg);
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.3s, color 0.3s;
+}
+
+.auth-logo-name {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.auth-heading {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--text-1);
+  text-align: center;
+  margin: 0 0 24px;
+  line-height: 1.2;
+}
+
+.auth-field {
+  margin-bottom: 10px;
+}
+
+.auth-field-error {
+  font-size: 12px;
+  color: var(--error-col);
+  margin: 4px 0 0 2px;
+  line-height: 1.4;
+}
+
+.auth-error {
+  font-size: 13px;
+  color: var(--error-col);
+  background: var(--error-bg);
+  border: 0.5px solid var(--error-bdr);
+  border-radius: 9px;
+  padding: 9px 12px;
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+.auth-submit {
+  margin-top: 4px;
+  border-radius: 9px;
+}
+
+.auth-spinner {
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.auth-forgot {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.auth-text-btn {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  font-size: 13px;
+  color: var(--text-3);
+  cursor: pointer;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  transition: color 0.2s;
+  min-height: 44px;
+}
+.auth-text-btn:hover       { color: var(--text-2); }
+.auth-text-btn:active      { transform: scale(0.97); }
+.auth-text-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.auth-switch {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-3);
+  margin: 20px 0 0;
+  padding-top: 20px;
+  border-top: 0.5px solid var(--border);
+}
+
+.auth-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: opacity 0.2s;
+}
+.auth-link:hover       { opacity: 0.75; }
+.auth-link:active      { opacity: 0.6; }
+
+/* ── Stock live-update indicators ──────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(0.75); }
+}
+
+.stock-refresh-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22C55E;
+  animation: pulse-dot 1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.ticker-skel-bar {
+  border-radius: 5px;
+  background: linear-gradient(
+    90deg,
+    var(--input-bg) 25%,
+    var(--card-bg) 50%,
+    var(--input-bg) 75%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Watchlist row remove button ───────────────────────────── */
+.ticker-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.e-ticker:hover .ticker-remove-btn,
+.ticker-row:hover .ticker-remove-btn { opacity: 1; }
+.ticker-remove-btn:hover { background: var(--red-bg); color: var(--red-col); }
+.ticker-remove-btn:active { transform: scale(0.92); }
+.ticker-remove-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Ticker error text */
+.ticker-error {
+  font-size: 12px;
+  color: var(--error-col);
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: var(--error-bg);
+  border: 0.5px solid var(--error-bdr);
+  border-radius: 7px;
+}
+.auth-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

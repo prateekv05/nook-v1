@@ -12,14 +12,14 @@
 ## SESSION STATE
 *(Claude updates this block at the end of every session)*
 
-**Current Phase:** 6 — Onboarding
-**Last completed task:** 6.4 — Step 13 Plans page
+**Current Phase:** 7 — Auth + Supabase (complete)
+**Last completed task:** 7.5 — Middleware (`middleware.js`)
 **In progress:** None
-**Next task:** Phase 7.1 — Supabase client + server setup
+**Next task:** Phase 8 — News + Stocks (user to confirm)
 **Decisions made this session:**
-- 6.4 Step13Plans: two-card layout (Free + Pro) with monthly/annual billing toggle; bareStep (no shell topnav — includes its own ob-plans-topnav with back btn → goToStep(3)); both CTAs call goToStep(4); annual tab shows $4.99/mo + "$59.99/yr · save 29%" subtext; monthly shows $6.99/mo.
-- 6.4 CSS added to globals.css: .ob-plans-topnav, .ob-billing-toggle/.ob-billing-tab/.ob-billing-save (segmented toggle), .ob-plan-grid (flex row, stretch), .ob-plan-card/.ob-plan-card.pro (accent-bg + elevated shadow), .ob-plan-badge (pill badge with star icon), .ob-plan-name/.ob-plan-price/.ob-plan-period/.ob-plan-price-alt, .ob-plan-feat-list/.ob-plan-feat-item/.ob-plan-feat-check (free=input-bg, pro=card-bg+accent), .ob-plan-cta/.ob-plan-cta.pro (accent bg, shadow, hover translateY). Theme overrides for regular+dark on pro card shadow and CTA shadow.
-- ob-social-proof/ob-proof-avatar classes reused from reference (already existed in globals.css from prior phases).
+- 7.1 Supabase client + server setup: `@supabase/ssr` installed; `supabase.js` uses `createBrowserClient` + singleton export; `supabase-server.js` exports `createSupabaseServerClient()` (cookie-aware, async) and `supabaseAdmin` (service-role); `middleware.js` protects `/dashboard`, `/settings`, `/onboarding` and redirects authed users away from `/login`, `/signup`
+- 7.2 Database tables SQL: `supabase/schema.sql` — all 13 tables, UNIQUE constraints, FK refs, RLS enabled + policies on every table, ai_content_cache special policy (shared rows readable by authenticated, writes locked to service_role), Trigger 1 (auto-create profiles on auth.users insert), Trigger 2 (snapshot checklist_items → checklist_history on daily_tracking upsert). Run and confirmed Success in Supabase SQL Editor.
+- 7.3 Login page: `src/app/(auth)/login/page.jsx` — full-screen centered layout, `.sett-card` at max-width 400px, Nook logomark + wordmark, serif "Welcome back." heading, `.ob-input` email + password fields, show/hide toggle (`ph-eye`/`ph-eye-slash`), `.ob-cta-btn` submit with spinner + disabled state, inline error banner, forgot password stub, "New to Nook? Create account" → `/signup`. AUTH PAGES CSS block added to globals.css. `jsconfig.json` created with `@/*` alias (was missing).
 **Blockers:** None
 
 ---
@@ -74,12 +74,11 @@
 - [x] 6.4 Plans page (Step 13)
 
 ### Phase 7 — Auth + Supabase
-- [ ] 7.1 Supabase client + server setup
-- [ ] 7.2 Database tables SQL (all 13 tables)
-- [ ] 7.3 DB migration — 4 new columns on user_preferences
-- [ ] 7.4 Login page
-- [ ] 7.5 Signup page
-- [ ] 7.6 Route protection middleware
+- [x] 7.1 Supabase client + server setup
+- [x] 7.2 Database tables SQL (all 13 tables)
+- [x] 7.3 Login page
+- [x] 7.4 Signup page
+- [x] 7.5 Route protection middleware
 
 ### Phase 8 — News + Stocks
 - [ ] 8.1 /api/news route

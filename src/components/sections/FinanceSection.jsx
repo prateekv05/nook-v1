@@ -1,12 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-
-const INITIAL_TICKERS = [
-  { sym: 'AAPL', name: 'Apple Inc.',  price: '$214.24', change: '+1.42%', up: true  },
-  { sym: 'TSLA', name: 'Tesla Inc.',  price: '$172.63', change: '-0.87%', up: false },
-  { sym: 'MSFT', name: 'Microsoft',   price: '$418.50', change: '+0.63%', up: true  },
-]
+import { useState, useEffect, useRef } from 'react'
+import { createClient } from '@/lib/supabase'
+import { isPro } from '@/lib/isPro'
+import { useToast } from '@/hooks/useToast'
+import UpgradeModal from '@/components/ui/UpgradeModal'
 
 const SENTIMENT = [
   { sym: 'AAPL', label: 'Bullish', cls: 'bullish', note: 'Strong earnings beat expected. Analysts raise price targets.' },
@@ -30,26 +28,206 @@ const MONTHLY_CATS = [
 ]
 
 const EXPENSE_CATS = ['Food', 'Transport', 'Entertainment', 'Health', 'Utilities', 'Other']
+const FREE_LIMIT   = 3
+const TICKER_RE    = /^[A-Z]{1,10}$/
+
+function TickerRowSkeleton() {
+  return (
+    <>
+      {[1, 2, 3].map(i => (
+        <div className="e-ticker" key={i} style={{ alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div className="ticker-skel-bar" style={{ width: 40, height: 12 }} />
+            <div className="ticker-skel-bar" style={{ width: 72, height: 10 }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end' }}>
+            <div className="ticker-skel-bar" style={{ width: 58, height: 12 }} />
+            <div className="ticker-skel-bar" style={{ width: 44, height: 10 }} />
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
 
 export default function FinanceSection({ onBack }) {
-  const [tickers, setTickers]       = useState(INITIAL_TICKERS)
+  const toast = useToast()
+  const supabase = createClient()
+
+  // Watchlist: [{ id, ticker }] — loaded from DB
+  const [watchlistItems, setWatchlistItems] = useState([])
+  const [watchlistLoading, setWatchlistLoading] = useState(true)
+
+  // Stock prices: { SYM: { symbol, name, price, changePercent, up } }
+  const [stockMap, setStockMap]         = useState({})
+  const [stocksLoading, setStocksLoading] = useState(false)
+  const [refreshing, setRefreshing]     = useState(false)
+
+  // Profile for isPro check
+  const [profile, setProfile] = useState(null)
+
+  // Add ticker form
   const [tickerInput, setTickerInput] = useState('')
-  const [expTab, setExpTab]         = useState('today')
-  const [expenses, setExpenses]     = useState(INITIAL_EXPENSES)
-  const [expAmt, setExpAmt]         = useState('')
-  const [expCat, setExpCat]         = useState('Food')
-  const [expNote, setExpNote]       = useState('')
+  const [tickerError, setTickerError] = useState('')
+  const [addingTicker, setAddingTicker] = useState(false)
 
-  const FREE_LIMIT = 3
-  const atLimit = tickers.length >= FREE_LIMIT
+  // Upgrade modal
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
 
-  function addTicker() {
-    const sym = tickerInput.trim().toUpperCase()
-    if (!sym || atLimit || tickers.find(t => t.sym === sym)) return
-    setTickers(prev => [...prev, { sym, name: sym, price: '—', change: '—', up: true }])
-    setTickerInput('')
+  // Expense log
+  const [expTab, setExpTab]   = useState('today')
+  const [expenses, setExpenses] = useState(INITIAL_EXPENSES)
+  const [expAmt, setExpAmt]   = useState('')
+  const [expCat, setExpCat]   = useState('Food')
+  const [expNote, setExpNote] = useState('')
+
+  const intervalRef = useRef(null)
+
+  // ── Load profile + watchlist on mount ─────────────────────
+  useEffect(() => {
+    async function loadInitialData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const [{ data: prof }, { data: wl }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase
+          .from('watchlist')
+          .select('id, ticker, display_order')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .order('display_order', { ascending: true, nullsFirst: false })
+          .order('added_at', { ascending: true }),
+      ])
+
+      if (prof) setProfile(prof)
+      const items = (wl || []).map(r => ({ id: r.id, ticker: r.ticker }))
+      setWatchlistItems(items)
+      setWatchlistLoading(false)
+    }
+    loadInitialData()
+  }, [])
+
+  // ── Fetch/refresh stock prices when watchlist changes ──────
+  async function fetchStocks(syms, isRefresh = false) {
+    if (syms.length === 0) { setStocksLoading(false); return }
+    if (isRefresh) setRefreshing(true)
+    else setStocksLoading(true)
+    try {
+      const res = await fetch(`/api/stocks?tickers=${syms.join(',')}`)
+      if (!res.ok) return
+      const { stocks } = await res.json()
+      if (Array.isArray(stocks)) {
+        const map = {}
+        stocks.forEach(s => { map[s.symbol] = s })
+        setStockMap(map)
+      }
+    } catch {
+      // keep last data on error
+    } finally {
+      setStocksLoading(false)
+      setRefreshing(false)
+    }
   }
 
+  useEffect(() => {
+    if (watchlistLoading) return
+    const syms = watchlistItems.map(w => w.ticker)
+    clearInterval(intervalRef.current)
+    fetchStocks(syms)
+    intervalRef.current = setInterval(() => fetchStocks(syms, true), 30_000)
+    return () => clearInterval(intervalRef.current)
+  }, [watchlistItems, watchlistLoading])
+
+  // ── Add ticker ─────────────────────────────────────────────
+  async function addTicker() {
+    const sym = tickerInput.trim().toUpperCase()
+    setTickerError('')
+
+    if (!sym) return
+    if (!TICKER_RE.test(sym)) {
+      setTickerError('Tickers must be 1–10 letters (A–Z only).')
+      return
+    }
+    if (watchlistItems.find(w => w.ticker === sym)) {
+      setTickerError(`${sym} is already in your watchlist.`)
+      return
+    }
+
+    const proUser = profile && isPro(profile)
+    if (watchlistItems.length >= FREE_LIMIT && !proUser) {
+      setUpgradeOpen(true)
+      return
+    }
+
+    setAddingTicker(true)
+    try {
+      // Validate ticker via stocks API
+      const res = await fetch(`/api/stocks?tickers=${sym}`)
+      const json = res.ok ? await res.json() : {}
+      const found = Array.isArray(json.stocks) && json.stocks.length > 0 &&
+        json.stocks.some(s => s.symbol === sym && s.price !== '$0.00')
+
+      if (!found) {
+        setTickerError(`"${sym}" not found. Check the symbol and try again.`)
+        return
+      }
+
+      // Optimistic add
+      const optimisticItem = { id: `opt-${sym}`, ticker: sym }
+      setWatchlistItems(prev => [...prev, optimisticItem])
+      setTickerInput('')
+
+      // Persist to DB
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: inserted, error } = await supabase
+        .from('watchlist')
+        .insert({
+          user_id:       user.id,
+          ticker:        sym,
+          display_order: watchlistItems.length + 1,
+          is_active:     true,
+        })
+        .select('id, ticker')
+        .single()
+
+      if (error) throw error
+
+      // Replace optimistic row with real DB row
+      setWatchlistItems(prev =>
+        prev.map(w => w.id === optimisticItem.id ? { id: inserted.id, ticker: inserted.ticker } : w)
+      )
+      toast?.success?.(`${sym} added to watchlist`)
+    } catch (err) {
+      // Roll back optimistic add on failure
+      setWatchlistItems(prev => prev.filter(w => w.ticker !== sym))
+      setTickerError('Failed to add ticker. Please try again.')
+      console.error('[watchlist add]', err)
+    } finally {
+      setAddingTicker(false)
+    }
+  }
+
+  // ── Remove ticker (soft delete) ────────────────────────────
+  async function removeTicker(item) {
+    // Optimistic remove
+    setWatchlistItems(prev => prev.filter(w => w.id !== item.id))
+
+    try {
+      const { error } = await supabase
+        .from('watchlist')
+        .update({ is_active: false })
+        .eq('id', item.id)
+      if (error) throw error
+    } catch (err) {
+      // Roll back
+      setWatchlistItems(prev => [...prev, item])
+      toast?.error?.('Failed to remove ticker.')
+      console.error('[watchlist remove]', err)
+    }
+  }
+
+  // ── Expense helpers ────────────────────────────────────────
   function addExpense() {
     const amt = parseFloat(expAmt)
     if (!amt || amt <= 0) return
@@ -59,9 +237,13 @@ export default function FinanceSection({ onBack }) {
   }
 
   const totalToday = expenses.reduce((s, e) => s + e.amt, 0)
+  const proUser    = profile && isPro(profile)
+  const atLimit    = watchlistItems.length >= FREE_LIMIT && !proUser
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+
       {/* Topbar */}
       <div className="exp-topbar">
         <button className="back-btn" onClick={onBack}>
@@ -81,40 +263,87 @@ export default function FinanceSection({ onBack }) {
           <div className="ecol">
             {/* Watchlist */}
             <div className="ec">
-              <div className="e-label fin">
-                Watchlist{' '}
-                <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-3)', textTransform: 'none', letterSpacing: 0 }}>
-                  (Free: 3 · Pro: unlimited)
+              <div className="e-label fin" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>
+                  Watchlist{' '}
+                  <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-3)', textTransform: 'none', letterSpacing: 0 }}>
+                    (Free: {FREE_LIMIT} · Pro: unlimited)
+                  </span>
                 </span>
+                {refreshing && <span className="stock-refresh-dot" />}
               </div>
-              {tickers.map(t => (
-                <div className="e-ticker" key={t.sym}>
-                  <div>
-                    <div className="e-tsym">{t.sym}</div>
-                    <div className="e-tname">{t.name}</div>
-                  </div>
-                  <div>
-                    <div className="e-tprice">{t.price}</div>
-                    <div style={{ fontSize: 12, color: t.up ? '#22C55E' : '#EF4444', textAlign: 'right' }}>{t.change}</div>
-                  </div>
+
+              {watchlistLoading || stocksLoading ? (
+                <TickerRowSkeleton />
+              ) : watchlistItems.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--text-3)', padding: '12px 0', textAlign: 'center' }}>
+                  No stocks yet — add a ticker below.
                 </div>
-              ))}
-              <div className="e-add">
+              ) : (
+                watchlistItems.map(item => {
+                  const s = stockMap[item.ticker]
+                  return (
+                    <div className="e-ticker" key={item.id} style={{ alignItems: 'center' }}>
+                      <div>
+                        <div className="e-tsym">{item.ticker}</div>
+                        <div className="e-tname">{s?.name || item.ticker}</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div className="e-tprice" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {s?.price ?? '—'}
+                          </div>
+                          <div style={{ fontSize: 12, color: s?.up ? '#22C55E' : '#EF4444', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                            {s?.changePercent ?? '—'}
+                          </div>
+                        </div>
+                        <button
+                          className="ticker-remove-btn"
+                          onClick={() => removeTicker(item)}
+                          title={`Remove ${item.ticker}`}
+                          aria-label={`Remove ${item.ticker} from watchlist`}
+                        >
+                          <i className="ph-bold ph-x" style={{ fontSize: 11 }} />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+
+              <div className="e-add" style={{ marginTop: 8 }}>
                 <input
                   className="e-input"
-                  placeholder="Add ticker..."
-                  style={{ flex: 1 }}
+                  placeholder={atLimit ? 'Upgrade to add more' : 'Add ticker…'}
+                  style={{ flex: 1, textTransform: 'uppercase' }}
                   value={tickerInput}
-                  onChange={e => setTickerInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addTicker()}
-                  disabled={atLimit}
+                  onChange={e => { setTickerInput(e.target.value); setTickerError('') }}
+                  onKeyDown={e => e.key === 'Enter' && !addingTicker && addTicker()}
+                  disabled={addingTicker}
                 />
-                <button className="e-btn-g" onClick={addTicker} disabled={atLimit}>Add</button>
+                <button
+                  className="e-btn-g"
+                  onClick={addTicker}
+                  disabled={addingTicker || !tickerInput.trim()}
+                >
+                  {addingTicker ? '…' : 'Add'}
+                </button>
               </div>
+
+              {tickerError && <div className="ticker-error">{tickerError}</div>}
+
               {atLimit && (
                 <div style={{ fontSize: 12, color: 'var(--life-col)', marginTop: 8, padding: '8px 10px', background: 'var(--life-bg)', borderRadius: 8, border: '0.5px solid var(--life-bdr)' }}>
-                  You've reached the 3-stock limit on the free plan.{' '}
-                  <span style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 500 }}>Upgrade to Pro</span>
+                  You've reached the {FREE_LIMIT}-stock limit on the free plan.{' '}
+                  <span
+                    style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 500 }}
+                    onClick={() => setUpgradeOpen(true)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => e.key === 'Enter' && setUpgradeOpen(true)}
+                  >
+                    Upgrade to Pro
+                  </span>
                 </div>
               )}
             </div>
@@ -182,7 +411,6 @@ export default function FinanceSection({ onBack }) {
                 <div className="e-label fin" style={{ marginBottom: 0 }}>Expense log</div>
               </div>
 
-              {/* Tabs */}
               <div className="fin-chart-tabs">
                 {[['today', 'Today'], ['monthly', 'Monthly'], ['trend', '3-Month Trend']].map(([id, label]) => (
                   <div
@@ -195,7 +423,6 @@ export default function FinanceSection({ onBack }) {
                 ))}
               </div>
 
-              {/* Today panel */}
               {expTab === 'today' && (
                 <div>
                   {expenses.map((e, i) => (
@@ -236,7 +463,6 @@ export default function FinanceSection({ onBack }) {
                 </div>
               )}
 
-              {/* Monthly panel */}
               {expTab === 'monthly' && (
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 10 }}>April 2026 — $1,842 total</div>
@@ -260,7 +486,6 @@ export default function FinanceSection({ onBack }) {
                 </div>
               )}
 
-              {/* 3-Month Trend panel */}
               {expTab === 'trend' && (
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 10 }}>Monthly spend — Feb, Mar, Apr 2026</div>
