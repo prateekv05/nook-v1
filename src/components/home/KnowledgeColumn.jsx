@@ -114,13 +114,13 @@ export default function KnowledgeColumn({ onExpand }) {
           )
         })}
 
-        <div className="sub-section" style={{ paddingTop: 10 }} onClick={e => e.stopPropagation()}>
-          <div className="sub-label" style={{ marginBottom: 6 }}>Did you know?</div>
+        <div style={{ paddingTop: 12, borderTop: '0.5px solid var(--sub-divider)', marginTop: 4 }} onClick={e => e.stopPropagation()}>
+          <div className="sub-label" style={{ marginBottom: 8 }}>Did you know?</div>
           <div className="did-you-know">&ldquo;The average person makes 35,000 decisions a day — most of them unconsciously. Simplifying your environment dramatically reduces decision fatigue.&rdquo;</div>
         </div>
 
-        <div className="sub-section" style={{ paddingTop: 10 }} onClick={e => e.stopPropagation()}>
-          <div className="sub-label" style={{ marginBottom: 6 }}>Concept of the day</div>
+        <div style={{ paddingTop: 12 }} onClick={e => e.stopPropagation()}>
+          <div className="sub-label" style={{ marginBottom: 8 }}>Concept of the day</div>
           <div className="concept-name">First Principles Thinking</div>
           <div className="concept-def">Break problems down to their most fundamental truths and reason upward — rather than by analogy.</div>
         </div>
