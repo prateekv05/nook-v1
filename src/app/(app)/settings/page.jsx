@@ -125,8 +125,36 @@ export default function SettingsPage() {
     showToast('Theme updated', 'info');
   }
 
-  function handleSave() {
-    showToast('Settings saved ✓', 'success');
+  async function handleSave() {
+    if (!userId) return;
+    const supabase = createClient();
+    try {
+      const [profileRes, prefsRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .update({ first_name: firstName, last_name: lastName, timezone })
+          .eq('id', userId),
+        supabase
+          .from('user_preferences')
+          .upsert({
+            user_id: userId,
+            theme,
+            news_topics: [...newsTopics],
+            learning_topics: [...learnTopics],
+            lifestyle_prefs: lifestyle,
+            income_goal_amount: incomeAmt ? Number(incomeAmt) : null,
+            income_goal_period: incomePeriod,
+            notification_preferences: notifs,
+          }, { onConflict: 'user_id' }),
+      ]);
+
+      if (profileRes.error) throw profileRes.error;
+      if (prefsRes.error)   throw prefsRes.error;
+
+      showToast('Settings saved ✓', 'success');
+    } catch (err) {
+      showToast("Couldn't save — please try again", 'error');
+    }
   }
 
   return (
