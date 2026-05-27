@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '../../../lib/supabase';
 
 export default function Step02Auth({ state, setState, onNext }) {
   const [mode, setMode]     = useState('signup');
+  const [checking, setChecking] = useState(true);
   const [email, setEmail]   = useState('');
   const [password, setPassword] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
@@ -15,6 +16,27 @@ export default function Step02Auth({ state, setState, onNext }) {
   const [emailSent, setEmailSent] = useState(false);
 
   const isSignup = mode === 'signup';
+
+  useEffect(() => {
+    async function checkSession() {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setChecking(false); return; }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile?.onboarding_completed) {
+        window.location.href = '/dashboard';
+      } else {
+        onNext();
+      }
+    }
+    checkSession();
+  }, []);
 
   function switchMode(m) {
     setMode(m);
@@ -56,14 +78,26 @@ export default function Step02Auth({ state, setState, onNext }) {
 
       onNext();
     } else {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const { data: signInData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
       setLoading(false);
       if (authError) { setError(authError.message); return; }
 
-      window.location.href = '/dashboard';
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('id', signInData.user.id)
+        .single();
+
+      if (profile?.onboarding_completed) {
+        window.location.href = '/dashboard';
+      } else {
+        onNext();
+      }
     }
   }
+
+  if (checking) return null;
 
   if (emailSent) {
     return (
