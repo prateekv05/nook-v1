@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useTheme } from "../../hooks/useTheme";
 import { createClient } from "../../lib/supabase";
 
@@ -20,12 +19,11 @@ const THEMES = [
 
 export default function Sidebar({ currentView, setView, currentSection, setSection }) {
   const { theme, setTheme } = useTheme();
-  const router = useRouter();
 
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    window.location.href = "/login";
   }
 
   function handleNav(item) {
