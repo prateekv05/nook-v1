@@ -70,37 +70,45 @@ export default function SettingsPage() {
   const [userId, setUserId]   = useState(null);
 
   useEffect(() => {
+    let mounted = true;
     async function load() {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setLoading(false); return; }
-      const uid = session.user.id;
-      setUserId(uid);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { if (mounted) setLoading(false); return; }
+        const uid = session.user.id;
+        if (mounted) setUserId(uid);
 
-      const [{ data: profile }, { data: prefs }] = await Promise.all([
-        supabase.from('profiles').select('first_name,last_name,timezone').eq('id', uid).single(),
-        supabase.from('user_preferences').select('theme,news_topics,learning_topics,lifestyle_prefs,income_goal_amount,income_goal_period,notification_preferences').eq('user_id', uid).single(),
-      ]);
+        const [{ data: profile }, { data: prefs }] = await Promise.all([
+          supabase.from('profiles').select('first_name,last_name,timezone').eq('id', uid).single(),
+          supabase.from('user_preferences').select('theme,news_topics,learning_topics,lifestyle_prefs,income_goal_amount,income_goal_period,notification_preferences').eq('user_id', uid).single(),
+        ]);
 
-      if (profile) {
-        if (profile.first_name) setFirstName(profile.first_name);
-        if (profile.last_name)  setLastName(profile.last_name);
-        if (profile.timezone)   setTimezone(profile.timezone);
+        if (!mounted) return;
+
+        if (profile) {
+          if (profile.first_name) setFirstName(profile.first_name);
+          if (profile.last_name)  setLastName(profile.last_name);
+          if (profile.timezone)   setTimezone(profile.timezone);
+        }
+
+        if (prefs) {
+          if (prefs.theme) setTheme(prefs.theme);
+          if (prefs.news_topics?.length)      setNewsTopics(new Set(prefs.news_topics));
+          if (prefs.learning_topics?.length)  setLearnTopics(new Set(prefs.learning_topics));
+          if (prefs.lifestyle_prefs)          setLifestyle(prefs.lifestyle_prefs);
+          if (prefs.income_goal_amount)       setIncomeAmt(String(prefs.income_goal_amount));
+          if (prefs.income_goal_period)       setIncomePeriod(prefs.income_goal_period);
+          if (prefs.notification_preferences) setNotifs(prefs.notification_preferences);
+        }
+      } catch (err) {
+        // silently fail — user sees stale defaults, not an error screen
+      } finally {
+        if (mounted) setLoading(false);
       }
-
-      if (prefs) {
-        if (prefs.theme) setTheme(prefs.theme);
-        if (prefs.news_topics?.length)      setNewsTopics(new Set(prefs.news_topics));
-        if (prefs.learning_topics?.length)  setLearnTopics(new Set(prefs.learning_topics));
-        if (prefs.lifestyle_prefs)          setLifestyle(prefs.lifestyle_prefs);
-        if (prefs.income_goal_amount)       setIncomeAmt(String(prefs.income_goal_amount));
-        if (prefs.income_goal_period)       setIncomePeriod(prefs.income_goal_period);
-        if (prefs.notification_preferences) setNotifs(prefs.notification_preferences);
-      }
-
-      setLoading(false);
     }
     load();
+    return () => { mounted = false; };
   }, []);
 
   function togglePill(set, setFn, val, max) {
