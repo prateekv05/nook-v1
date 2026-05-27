@@ -80,7 +80,7 @@ export default function SignupPage() {
       return
     }
 
-    router.push('/onboarding')
+    window.location.replace('/onboarding')
   }
 
   function clearFieldError(field) {
