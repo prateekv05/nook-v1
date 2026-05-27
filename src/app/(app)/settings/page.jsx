@@ -299,7 +299,14 @@ export default function SettingsPage() {
         </div>
 
         {/* Global save */}
-        <button className="sett-save-btn" onClick={handleSave}>Save changes</button>
+        <button
+          className="sett-save-btn"
+          onClick={handleSave}
+          disabled={loading}
+          style={{ opacity: loading ? 0.5 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+        >
+          {loading ? 'Loading…' : 'Save changes'}
+        </button>
 
       </div>
     </div>
