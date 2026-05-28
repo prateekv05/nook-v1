@@ -488,13 +488,6 @@ export default function FinanceSection({ onBack }) {
 
     setAddingTicker(true)
     try {
-      const res   = await fetch(`/api/stocks?tickers=${sym}`)
-      const json  = res.ok ? await res.json() : {}
-      const found = Array.isArray(json.stocks) && json.stocks.length > 0 &&
-        json.stocks.some(s => s.symbol === sym && s.price !== '$0.00')
-
-      if (!found) { setTickerError(`"${sym}" not found. Check the symbol and try again.`); return }
-
       const optimisticItem = { id: `opt-${sym}`, ticker: sym }
       setWatchlistItems(prev => [...prev, optimisticItem])
       setTickerInput('')
