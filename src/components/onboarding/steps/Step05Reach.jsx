@@ -2,46 +2,33 @@
 
 import { useState } from 'react';
 
-function isValidEmail(v) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-}
-
 export default function Step05Reach({ state, setState, onNext }) {
   const [touched, setTouched] = useState(false);
 
-  const email   = state.email;
-  const confirm = state.confirmEmail;
+  const username = state.username || '';
+  const dob      = state.dob || '';
 
-  const emailOk   = isValidEmail(email);
-  const confirmOk = confirm.length > 0 && email === confirm;
-  const canContinue = emailOk && confirmOk;
+  const usernameOk = username.trim().length >= 2;
+  const canContinue = usernameOk;
 
-  function emailStatus() {
-    if (!email) return null;
-    return emailOk ? 'ok' : 'err';
-  }
-
-  function confirmStatus() {
-    if (!confirm) return null;
-    if (email === confirm) return 'ok';
-    return 'err';
-  }
+  const maxDate = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 13);
+    return d.toISOString().split('T')[0];
+  })();
 
   function handleContinue() {
     setTouched(true);
     if (canContinue) onNext();
   }
 
-  const es = emailStatus();
-  const cs = confirmStatus();
-
   return (
     <>
       <div className="ob-heading-block">
         <h1 className="ob-headline">
-          Where should we<br />reach you?
+          Tell us a bit<br />more about you.
         </h1>
-        <p className="ob-subtext">We&apos;ll send your progress reports here.</p>
+        <p className="ob-subtext">Choose a display name and, optionally, your date of birth.</p>
       </div>
 
       <form
@@ -49,67 +36,46 @@ export default function Step05Reach({ state, setState, onNext }) {
         noValidate
         onSubmit={e => { e.preventDefault(); handleContinue(); }}
       >
-        <div className={`ob-field${touched && !emailOk ? ' has-error' : ''}`}>
-          <label className="ob-field-label" htmlFor="s5-email">Email address</label>
-          <div className="ob-input-wrap">
-            <input
-              className={`ob-input${email ? (emailOk ? ' valid' : ' error') : ''}`}
-              style={es ? { paddingRight: '40px' } : undefined}
-              type="email"
-              id="s5-email"
-              name="email"
-              placeholder="alex@example.com"
-              autoComplete="email"
-              inputMode="email"
-              value={email}
-              onChange={e => setState(s => ({ ...s, email: e.target.value }))}
-            />
-            <span
-              className={`ob-input-status ${es || ''}${es ? ' show' : ''}`}
-              aria-hidden="true"
-            >
-              <i className={`ph-bold ${es === 'ok' ? 'ph-check-circle' : 'ph-x-circle'}`} />
-            </span>
-          </div>
-          {touched && !emailOk && (
+        <div className={`ob-field${touched && !usernameOk ? ' has-error' : ''}`}>
+          <label className="ob-field-label" htmlFor="s5-username">Display name</label>
+          <input
+            className={`ob-input${username ? (usernameOk ? ' valid' : ' error') : ''}`}
+            type="text"
+            id="s5-username"
+            name="username"
+            placeholder="e.g. alex_nook"
+            autoComplete="nickname"
+            autoCapitalize="none"
+            value={username}
+            onChange={e => setState(s => ({ ...s, username: e.target.value }))}
+          />
+          {touched && !usernameOk && (
             <span className="ob-field-error show" role="alert">
-              Enter a valid email address.
+              Enter a display name (at least 2 characters).
             </span>
           )}
         </div>
 
-        <div className={`ob-field${touched && confirm && !confirmOk ? ' has-error' : ''}`}>
-          <label className="ob-field-label" htmlFor="s5-confirm">Confirm email</label>
-          <div className="ob-input-wrap">
-            <input
-              className={`ob-input${confirm ? (confirmOk ? ' valid' : ' error') : ''}`}
-              style={cs ? { paddingRight: '40px' } : undefined}
-              type="email"
-              id="s5-confirm"
-              name="confirm-email"
-              placeholder="alex@example.com"
-              autoComplete="email"
-              inputMode="email"
-              value={confirm}
-              onChange={e => setState(s => ({ ...s, confirmEmail: e.target.value }))}
-            />
-            <span
-              className={`ob-input-status ${cs || ''}${cs ? ' show' : ''}`}
-              aria-hidden="true"
-            >
-              <i className={`ph-bold ${cs === 'ok' ? 'ph-check-circle' : 'ph-x-circle'}`} />
-            </span>
-          </div>
-          {touched && confirm && !confirmOk && (
-            <span className="ob-field-error show" role="alert">
-              Emails don&apos;t match.
-            </span>
-          )}
+        <div className="ob-field">
+          <label className="ob-field-label" htmlFor="s5-dob">
+            Date of birth
+            <span style={{ color: 'var(--text-3)', fontWeight: 400, marginLeft: '6px' }}>· optional</span>
+          </label>
+          <input
+            className="ob-input"
+            type="date"
+            id="s5-dob"
+            name="dob"
+            autoComplete="bday"
+            max={maxDate}
+            value={dob}
+            onChange={e => setState(s => ({ ...s, dob: e.target.value }))}
+          />
         </div>
 
         <div className="ob-privacy-note" role="note">
           <i className="ph-bold ph-lock-simple" />
-          <p>We&apos;ll only email what matters. No spam, ever.</p>
+          <p>Your date of birth is never shared publicly — used only to personalise your experience.</p>
         </div>
       </form>
 

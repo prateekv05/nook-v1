@@ -1,6 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+const COUNTRIES = [
+  'United States', 'United Kingdom', 'Canada', 'Australia', 'India',
+  'Germany', 'France', 'Netherlands', 'Sweden', 'Norway', 'Denmark',
+  'Switzerland', 'Austria', 'Belgium', 'Finland', 'Ireland', 'New Zealand',
+  'Singapore', 'Japan', 'South Korea', 'China', 'Hong Kong', 'Taiwan',
+  'Brazil', 'Mexico', 'Argentina', 'Colombia', 'Chile',
+  'South Africa', 'Nigeria', 'Kenya', 'Ghana',
+  'UAE', 'Saudi Arabia', 'Israel', 'Turkey',
+  'Italy', 'Spain', 'Portugal', 'Poland', 'Czech Republic', 'Hungary',
+  'Romania', 'Greece', 'Russia', 'Ukraine',
+  'Indonesia', 'Malaysia', 'Thailand', 'Philippines', 'Vietnam', 'Pakistan',
+  'Bangladesh', 'Sri Lanka', 'Egypt', 'Morocco',
+  'Other',
+];
 
 export default function Step07Location({ state, setState, onNext }) {
   const loc = state.location;
@@ -31,17 +44,19 @@ export default function Step07Location({ state, setState, onNext }) {
       <form className="ob-form" noValidate onSubmit={e => { e.preventDefault(); if (canContinue) onNext(); }}>
         <div className="ob-field">
           <label className="ob-field-label" htmlFor="s7-country">Country</label>
-          <input
-            className="ob-input"
-            type="text"
+          <select
+            className="ob-select"
             id="s7-country"
             name="country"
-            placeholder="United States"
             autoComplete="country-name"
-            autoCapitalize="words"
             value={loc.country}
             onChange={e => set('country', e.target.value)}
-          />
+          >
+            <option value="">Select your country…</option>
+            {COUNTRIES.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
 
         <div className="ob-field">
@@ -62,7 +77,7 @@ export default function Step07Location({ state, setState, onNext }) {
 
         <div className="ob-form-row">
           <div className="ob-field">
-            <label className="ob-field-label" htmlFor="s7-state">State</label>
+            <label className="ob-field-label" htmlFor="s7-state">State / Province</label>
             <input
               className="ob-input"
               type="text"
@@ -70,13 +85,13 @@ export default function Step07Location({ state, setState, onNext }) {
               name="state"
               placeholder="CA"
               autoComplete="address-level1"
-              maxLength={2}
+              maxLength={6}
               value={loc.state}
               onChange={handleStateInput}
             />
           </div>
           <div className="ob-field">
-            <label className="ob-field-label" htmlFor="s7-zip">ZIP code</label>
+            <label className="ob-field-label" htmlFor="s7-zip">ZIP / Postal code</label>
             <input
               className="ob-input"
               type="text"

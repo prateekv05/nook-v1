@@ -45,8 +45,10 @@ export default function OnboardingShell() {
   const [state, setState] = useState({
     name: { first: '', last: '' },
     email: '',
-    confirmEmail: '',
+    username: '',
+    dob: '',
     gender: '',
+    genderOther: '',
     location: { country: '', city: '', state: '', zip: '' },
     field: '',
     fieldOther: '',

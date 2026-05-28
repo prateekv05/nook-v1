@@ -49,19 +49,21 @@ export default function Step12Ready({ state }) {
           supabase.from('profiles').update({
             first_name:           state.name?.first  || null,
             last_name:            state.name?.last   || null,
-            gender:               state.gender       || null,
+            gender:               state.gender === 'other' ? (state.genderOther || 'other') : (state.gender || null),
+            date_of_birth:        state.dob || null,
             onboarding_completed: true,
           }).eq('id', user.id),
 
           supabase.from('user_preferences').upsert({
-            user_id:             user.id,
-            news_topics:         state.topics   || [],
-            learning_topics:     state.learning || [],
-            finance_instruments: state.finance  || [],
-            lifestyle_prefs:     ['journal', 'gratitude', 'checklist', 'stress'],
-            gender:              state.gender   || null,
-            location:            state.location || null,
-            field:               state.fieldOther || state.field || null,
+            user_id:                  user.id,
+            news_topics:              state.topics   || [],
+            learning_topics:          state.learning || [],
+            finance_instruments:      state.finance  || [],
+            lifestyle_prefs:          ['journal', 'gratitude', 'checklist', 'stress'],
+            gender:                   state.gender === 'other' ? (state.genderOther || 'other') : (state.gender || null),
+            location:                 state.location || null,
+            field:                    state.fieldOther || state.field || null,
+            notification_preferences: { display_name: state.username || '' },
           }),
         ]);
       }
