@@ -1,11 +1,19 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
-export default function AuthPage() {
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <AuthPage />
+    </Suspense>
+  )
+}
+
+function AuthPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const formRef = useRef(null)
