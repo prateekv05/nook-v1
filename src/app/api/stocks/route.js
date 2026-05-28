@@ -1,31 +1,24 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, supabaseAdmin } from '@/lib/supabase-server'
 
-function formatQuote(q) {
-  const pct = q.changesPercentage ?? 0
-  return {
-    symbol:        q.symbol,
-    name:          q.name || q.symbol,
-    price:         `$${Number(q.price ?? 0).toFixed(2)}`,
-    changePercent: `${pct >= 0 ? '+' : ''}${Number(pct).toFixed(2)}%`,
-    up:            pct >= 0,
-  }
-}
-
 function expiresAt30s() {
   return new Date(Date.now() + 30_000).toISOString()
 }
 
-async function fetchFromFMP(tickers) {
-  const url = `https://financialmodelingprep.com/api/v3/quote/${tickers}?apikey=${process.env.FMP_API_KEY}`
-  const res = await fetch(url, { next: { revalidate: 0 } })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`FMP error: ${res.status} — ${text.slice(0, 200)}`)
-  }
+async function fetchQuote(ticker) {
+  const url = `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${process.env.FINNHUB_API_KEY}`
+  const res = await fetch(url, { cache: 'no-store' })
+  if (!res.ok) throw new Error(`Finnhub error: ${res.status}`)
   const data = await res.json()
-  if (!Array.isArray(data)) throw new Error(`FMP returned non-array: ${JSON.stringify(data).slice(0, 200)}`)
-  return data.map(formatQuote)
+  if (!data || typeof data.c !== 'number') throw new Error(`Finnhub invalid response for ${ticker}`)
+  const pct = data.dp ?? 0
+  return {
+    symbol:        ticker,
+    name:          ticker,
+    price:         `$${Number(data.c ?? 0).toFixed(2)}`,
+    changePercent: `${pct >= 0 ? '+' : ''}${Number(pct).toFixed(2)}%`,
+    up:            pct >= 0,
+  }
 }
 
 export async function GET(request) {
@@ -40,15 +33,14 @@ export async function GET(request) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     try {
-      const url = `https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(searchQuery)}&limit=8&apikey=${process.env.FMP_API_KEY}`
-      const res = await fetch(url, { next: { revalidate: 0 } })
-      if (!res.ok) throw new Error(`FMP search error: ${res.status}`)
+      const url = `https://finnhub.io/api/v1/search?q=${encodeURIComponent(searchQuery)}&token=${process.env.FINNHUB_API_KEY}`
+      const res = await fetch(url, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`Finnhub search error: ${res.status}`)
       const data = await res.json()
-      const MAJOR_EXCHANGES = new Set(['NASDAQ', 'NYSE', 'NYSE ARCA', 'NYSE MKT', 'AMEX', 'CBOE', 'OTC'])
-      const results = (Array.isArray(data) ? data : [])
-        .filter(r => r.symbol && (MAJOR_EXCHANGES.has(r.exchangeShortName) || !r.exchangeShortName))
+      const results = (data.result || [])
+        .filter(r => r.type === 'Common Stock' && r.symbol && !r.symbol.includes('.'))
         .slice(0, 6)
-        .map(r => ({ symbol: r.symbol, name: r.name, exchange: r.exchangeShortName || '' }))
+        .map(r => ({ symbol: r.displaySymbol || r.symbol, name: r.description, exchange: '' }))
       return NextResponse.json({ results })
     } catch {
       return NextResponse.json({ results: [] })
@@ -71,9 +63,8 @@ export async function GET(request) {
   }
 
   const sortedKey = tickers.slice().sort().join(',')
-  const cacheKey = `stocks-${sortedKey}`
+  const cacheKey  = `stocks-${sortedKey}`
 
-  // Check fresh cache (< 30 seconds old)
   const { data: fresh } = await supabaseAdmin
     .from('ai_content_cache')
     .select('content')
@@ -85,22 +76,21 @@ export async function GET(request) {
     return NextResponse.json({ stocks: JSON.parse(fresh.content), cached: true })
   }
 
-  // Cache miss — call FMP
   let stocks
   try {
-    stocks = await fetchFromFMP(tickers.join(','))
+    stocks = await Promise.all(tickers.map(t => fetchQuote(t)))
+
     await supabaseAdmin
       .from('ai_content_cache')
       .upsert({
         content_type:  'stocks',
         content_key:   cacheKey,
         content:       JSON.stringify(stocks),
-        model_version: 'fmp-v3',
+        model_version: 'finnhub-v1',
         generated_at:  new Date().toISOString(),
         expires_at:    expiresAt30s(),
       }, { onConflict: 'content_key' })
   } catch (err) {
-    // Return last cached data even if stale
     const { data: stale } = await supabaseAdmin
       .from('ai_content_cache')
       .select('content')
