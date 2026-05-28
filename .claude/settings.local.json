@@ -56,7 +56,14 @@
       "Bash(git -C \"/Users/prateekvangari/Downloads/nook\" push)",
       "Bash(git -C /Users/prateekvangari/Downloads/nook log --oneline -3)",
       "Bash(git -C /Users/prateekvangari/Downloads/nook diff middleware.js src/components/onboarding/steps/Step12Ready.jsx CLAUDE.md)",
-      "Bash(git -C /Users/prateekvangari/Downloads/nook add middleware.js src/components/onboarding/steps/Step12Ready.jsx CLAUDE.md)"
+      "Bash(git -C /Users/prateekvangari/Downloads/nook add middleware.js src/components/onboarding/steps/Step12Ready.jsx CLAUDE.md)",
+      "Bash(node -e \"require\\('playwright'\\)\")",
+      "Bash(npx playwright *)",
+      "Bash(node -e ' *)",
+      "Bash(npm list *)",
+      "Skill(impeccable)",
+      "Skill(impeccable:*)",
+      "Bash(node /Users/prateekvangari/.claude/skills/impeccable/scripts/load-context.mjs)"
     ],
     "additionalDirectories": [
       "/Users/prateekvangari/Downloads/nook-scaffold",
