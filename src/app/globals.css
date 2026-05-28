@@ -1155,6 +1155,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .sent-badge-e { font-size: 10px; padding: 2px 8px; border-radius: 6px; }
 .bullish { background: var(--fin-bg); color: var(--fin-col); border: 0.5px solid var(--fin-bdr); }
 .neutral { background: var(--input-bg); color: var(--text-2); border: 0.5px solid var(--border); }
+.bearish { background: var(--red-bg); color: var(--red-col); border: 0.5px solid var(--red-bdr); }
 
 /* Journal */
 .journal-submitted {
@@ -2730,12 +2731,13 @@ button, a, [role="button"] {
   justify-content: space-between;
   gap: 20px;
   padding: 12px 20px;
+  margin-bottom: 14px;
 }
 
 .di-stat-row {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   flex: 1;
   justify-content: center;
 }

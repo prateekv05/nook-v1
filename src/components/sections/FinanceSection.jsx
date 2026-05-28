@@ -20,11 +20,14 @@ function AISkeleton({ height = 36 }) {
   )
 }
 
-const SENTIMENT = [
-  { sym: 'AAPL', label: 'Bullish', cls: 'bullish', note: 'Strong earnings beat expected. Analysts raise price targets.' },
-  { sym: 'TSLA', label: 'Neutral', cls: 'neutral', note: 'Mixed delivery signals. Watch for macro headwinds.' },
-  { sym: 'MSFT', label: 'Bullish', cls: 'bullish', note: 'Azure growth accelerating on AI enterprise demand.' },
-]
+function deriveSentiment(ticker, stockMap) {
+  const s = stockMap[ticker]
+  if (!s) return null
+  const pct = parseFloat((s.changePercent || '0%').replace(/[+%]/g, ''))
+  if (pct >= 1.5)  return { label: 'Bullish', cls: 'bullish', note: `Up ${s.changePercent} today — strong buying momentum.` }
+  if (pct <= -1.5) return { label: 'Bearish', cls: 'bearish', note: `Down ${s.changePercent} today — watch for continued weakness.` }
+  return { label: 'Neutral', cls: 'neutral', note: `Trading near flat at ${s.price} — consolidation phase.` }
+}
 
 const EXPENSE_CATS = ['Food', 'Transport', 'Entertainment', 'Health', 'Utilities', 'Other']
 const FREE_LIMIT   = 3
@@ -101,9 +104,13 @@ export default function FinanceSection({ onBack }) {
   const [userId, setUserId]   = useState(null)
 
   // Add ticker form
-  const [tickerInput, setTickerInput]   = useState('')
-  const [tickerError, setTickerError]   = useState('')
-  const [addingTicker, setAddingTicker] = useState(false)
+  const [tickerInput, setTickerInput]     = useState('')
+  const [tickerError, setTickerError]     = useState('')
+  const [addingTicker, setAddingTicker]   = useState(false)
+  const [suggestions, setSuggestions]     = useState([])
+  const [showSuggest, setShowSuggest]     = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const searchTimerRef = useRef(null)
 
   // Upgrade modal
   const [upgradeOpen, setUpgradeOpen] = useState(false)
@@ -442,12 +449,38 @@ export default function FinanceSection({ onBack }) {
     }
   }
 
+  // ── Ticker search (autocomplete) ───────────────────────────
+  function handleTickerInput(val) {
+    setTickerInput(val)
+    setTickerError('')
+    clearTimeout(searchTimerRef.current)
+    if (val.trim().length < 1) { setSuggestions([]); setShowSuggest(false); return }
+    searchTimerRef.current = setTimeout(async () => {
+      setSearchLoading(true)
+      try {
+        const res = await fetch(`/api/stocks?search=${encodeURIComponent(val.trim())}`)
+        const json = res.ok ? await res.json() : {}
+        setSuggestions(json.results || [])
+        setShowSuggest((json.results || []).length > 0)
+      } catch { setSuggestions([]) }
+      finally { setSearchLoading(false) }
+    }, 280)
+  }
+
+  async function pickSuggestion(sym) {
+    setShowSuggest(false)
+    setSuggestions([])
+    setTickerInput(sym)
+    setTickerError('')
+    await addTicker(sym)
+  }
+
   // ── Add ticker ─────────────────────────────────────────────
-  async function addTicker() {
-    const sym = tickerInput.trim().toUpperCase()
+  async function addTicker(overrideSym) {
+    const sym = (overrideSym || tickerInput).trim().toUpperCase()
     setTickerError('')
     if (!sym) return
-    if (!TICKER_RE.test(sym)) { setTickerError('Tickers must be 1–10 letters (A–Z only).'); return }
+    if (!TICKER_RE.test(sym)) { setTickerError('Enter a valid ticker symbol (e.g. AAPL).'); return }
     if (watchlistItems.find(w => w.ticker === sym)) { setTickerError(`${sym} is already in your watchlist.`); return }
 
     const proUser = profile && isPro(profile)
@@ -640,19 +673,44 @@ export default function FinanceSection({ onBack }) {
                 })
               )}
 
-              <div className="e-add" style={{ marginTop: 8 }}>
-                <input
-                  className="e-input"
-                  placeholder={atLimit ? 'Upgrade to add more' : 'Add ticker…'}
-                  style={{ flex: 1, textTransform: 'uppercase' }}
-                  value={tickerInput}
-                  onChange={e => { setTickerInput(e.target.value); setTickerError('') }}
-                  onKeyDown={e => e.key === 'Enter' && !addingTicker && addTicker()}
-                  disabled={addingTicker}
-                />
-                <button className="e-btn-g" onClick={addTicker} disabled={addingTicker || !tickerInput.trim()}>
-                  {addingTicker ? '…' : 'Add'}
-                </button>
+              <div style={{ position: 'relative', marginTop: 8 }}>
+                <div className="e-add">
+                  <input
+                    className="e-input"
+                    placeholder={atLimit ? 'Upgrade to add more' : 'Ticker or company name…'}
+                    style={{ flex: 1 }}
+                    value={tickerInput}
+                    onChange={e => handleTickerInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !addingTicker) addTicker()
+                      if (e.key === 'Escape') { setShowSuggest(false); setSuggestions([]) }
+                    }}
+                    onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
+                    onFocus={() => suggestions.length > 0 && setShowSuggest(true)}
+                    disabled={addingTicker}
+                    autoComplete="off"
+                  />
+                  <button className="e-btn-g" onClick={() => addTicker()} disabled={addingTicker || !tickerInput.trim()}>
+                    {addingTicker || searchLoading ? '…' : 'Add'}
+                  </button>
+                </div>
+                {showSuggest && suggestions.length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 'var(--z-modal)', background: 'var(--card-bg)', border: '0.5px solid var(--border)', borderRadius: 10, boxShadow: 'var(--card-sh)', marginTop: 4, overflow: 'hidden' }}>
+                    {suggestions.map(r => (
+                      <button
+                        key={r.symbol}
+                        onMouseDown={() => pickSuggestion(r.symbol)}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '0.5px solid var(--sub-divider)', cursor: 'pointer', transition: 'background 0.15s', gap: 8, textAlign: 'left' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--input-bg)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                      >
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', flexShrink: 0 }}>{r.symbol}</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                        <span style={{ fontSize: 10, color: 'var(--text-3)', flexShrink: 0 }}>{r.exchange}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {tickerError && <div className="ticker-error">{tickerError}</div>}
@@ -676,15 +734,37 @@ export default function FinanceSection({ onBack }) {
             {/* Sentiment */}
             <div className="ec">
               <div className="e-label fin">Stock sentiment</div>
-              {SENTIMENT.map((s, i) => (
-                <div key={s.sym} style={{ display: 'flex', alignItems: 'flex-start', padding: '8px 0', borderBottom: i < SENTIMENT.length - 1 ? '0.5px solid var(--sub-divider)' : 'none', gap: 8 }}>
-                  <div style={{ minWidth: 44 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{s.sym}</div>
-                    <span className={`sent-badge-e ${s.cls}`}>{s.label}</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>{s.note}</div>
+              {watchlistLoading || stocksLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[1, 2].map(i => (
+                    <div key={i} style={{ display: 'flex', gap: 8, padding: '8px 0' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 44 }}>
+                        <div className="ticker-skel-bar" style={{ width: 36, height: 12 }} />
+                        <div className="ticker-skel-bar" style={{ width: 44, height: 10 }} />
+                      </div>
+                      <div className="ticker-skel-bar" style={{ flex: 1, height: 32 }} />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : watchlistItems.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--text-3)', padding: '8px 0', lineHeight: 1.6 }}>
+                  Add stocks to your watchlist to see sentiment.
+                </div>
+              ) : (
+                watchlistItems.map((item, i) => {
+                  const sent = deriveSentiment(item.ticker, stockMap)
+                  if (!sent) return null
+                  return (
+                    <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', padding: '8px 0', borderBottom: i < watchlistItems.length - 1 ? '0.5px solid var(--sub-divider)' : 'none', gap: 8 }}>
+                      <div style={{ minWidth: 44 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{item.ticker}</div>
+                        <span className={`sent-badge-e ${sent.cls}`}>{sent.label}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>{sent.note}</div>
+                    </div>
+                  )
+                })
+              )}
             </div>
 
             {/* Income goal */}

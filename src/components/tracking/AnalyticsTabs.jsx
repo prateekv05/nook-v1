@@ -26,6 +26,14 @@ const DOW_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 function isoAbbr(iso)   { return DOW_ABBR[new Date(iso + 'T12:00:00').getDay()] }
 function isoLetter(iso) { return DOW_LETTER[new Date(iso + 'T12:00:00').getDay()] }
 
+function getWeekStart() {
+  const d = new Date()
+  const diff = (d.getDay() + 6) % 7
+  const monday = new Date(d)
+  monday.setDate(d.getDate() - diff)
+  return monday.toISOString().slice(0, 10)
+}
+
 /* ── main component ──────────────────────────────────────── */
 export default function AnalyticsTabs() {
   const [tab,         setTab]         = useState('daily')
@@ -34,6 +42,7 @@ export default function AnalyticsTabs() {
   const [loading,     setLoading]     = useState(true)
   const [userId,      setUserId]      = useState(null)
   const [profile,     setProfile]     = useState(null)
+  const [selectedRing, setSelectedRing] = useState(null)
 
   useEffect(() => {
     async function fetchAll() {
@@ -66,25 +75,222 @@ export default function AnalyticsTabs() {
     fetchAll()
   }, [])
 
-  const today = weeklyData.find(r => r.date === todayISO()) || null
+  const today      = weeklyData.find(r => r.date === todayISO()) || null
+  const isUserPro  = profile ? isPro(profile) : false
+  const weekStart  = getWeekStart()
+
+  const trackingSummary = useMemo(() => {
+    if (!weeklyData.length) return {}
+    const avg = arr => arr.length ? +(arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(1) : null
+    return {
+      days:       weeklyData.length,
+      avgSleep:   avg(weeklyData.filter(r => r.sleep         != null).map(r => r.sleep)),
+      avgSteps:   avg(weeklyData.filter(r => r.steps         != null).map(r => r.steps)),
+      avgWater:   avg(weeklyData.filter(r => r.water         != null).map(r => r.water)),
+      avgScore:   avg(weeklyData.filter(r => r.day_score).map(r => r.day_score)),
+      avgProdHrs: avg(weeklyData.filter(r => r.productive_hrs != null).map(r => r.productive_hrs)),
+    }
+  }, [weeklyData])
+
+  const { content: insights, loading: insightsLoading } = useAIContent({
+    type: 'ai-insights',
+    key: isUserPro && userId ? `ai-insights-${userId}-${weekStart}` : null,
+    userContext: trackingSummary,
+  })
+
+  // Build history rings from last 7 days
+  const weekDates   = lastNDays(7)
+  const byDate      = Object.fromEntries(weeklyData.map(r => [r.date, r]))
+  const historyRings = weekDates.map(date => ({
+    date,
+    day:     isoAbbr(date),
+    dateNum: String(new Date(date + 'T12:00:00').getDate()),
+    row:     byDate[date] || null,
+    score:   byDate[date]?.day_score ?? 0,
+  }))
 
   return (
     <div>
-      <div className="chart-tabs">
-        {['daily', 'weekly', 'monthly'].map(t => (
-          <button
-            key={t}
-            className={`chart-tab${tab === t ? ' active' : ''}`}
-            onClick={() => setTab(t)}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
+      {/* Two-column: AI Insights left, Charts right */}
+      <div className="eg2" style={{ marginBottom: 14 }}>
+        {/* ── Left: AI Insights ── */}
+        <div className="ec tb">
+          <div className="e-label know">AI insights</div>
+          <AIInsightsPanel isUserPro={isUserPro} insights={insights} insightsLoading={insightsLoading} />
+        </div>
+
+        {/* ── Right: Chart Tabs ── */}
+        <div className="ec" style={{ flex: 1, minWidth: 0 }}>
+          <div className="e-label know">Charts</div>
+          <div className="chart-tabs">
+            {['daily', 'weekly', 'monthly'].map(t => (
+              <button
+                key={t}
+                className={`chart-tab${tab === t ? ' active' : ''}`}
+                onClick={() => setTab(t)}
+              >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'daily'   && <DailyPanel   today={today} loading={loading} />}
+          {tab === 'weekly'  && <WeeklyPanel  data={weeklyData}  loading={loading} />}
+          {tab === 'monthly' && <MonthlyPanel data={monthlyData} loading={loading} />}
+        </div>
       </div>
 
-      {tab === 'daily'   && <DailyPanel   today={today} loading={loading} />}
-      {tab === 'weekly'  && <WeeklyPanel  data={weeklyData}  loading={loading} userId={userId} profile={profile} />}
-      {tab === 'monthly' && <MonthlyPanel data={monthlyData} loading={loading} />}
+      {/* ── Day Score History Rings ── */}
+      <div className="ec">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div className="e-label know" style={{ marginBottom: 0 }}>Day Score History</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Tap a ring to expand</div>
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'flex', gap: 8 }}>
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="shimmer" style={{ width: 58, height: 88, borderRadius: 10, flexShrink: 0 }} />
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="hist-rings-scroll">
+              {historyRings.map((r, i) => (
+                <button
+                  key={i}
+                  className={`hist-ring-item${selectedRing === i ? ' selected' : ''}`}
+                  onClick={() => setSelectedRing(selectedRing === i ? null : i)}
+                  aria-label={`${r.day} ${r.dateNum} — score ${r.score}`}
+                >
+                  <DayScoreRing score={r.score} size={56} strokeWidth={4} bgStroke="var(--border)" />
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>
+                    {r.score || '—'}
+                  </div>
+                  <div style={{ fontSize: 9, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{r.day}</div>
+                  <div style={{ fontSize: 9, color: 'var(--text-3)', fontVariantNumeric: 'tabular-nums' }}>{r.dateNum}</div>
+                </button>
+              ))}
+            </div>
+
+            {selectedRing !== null && historyRings[selectedRing].row && (
+              <HistoryRingDetail ring={historyRings[selectedRing]} />
+            )}
+            {selectedRing !== null && !historyRings[selectedRing].row && (
+              <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-3)', padding: '10px 12px', background: 'var(--input-bg)', borderRadius: 10, border: '0.5px solid var(--border)' }}>
+                No data logged for this day.
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ── AI insights panel ───────────────────────────────────── */
+function AIInsightsPanel({ isUserPro, insights, insightsLoading }) {
+  if (!isUserPro) {
+    return (
+      <div>
+        <div style={{ padding: '9px 10px', background: 'var(--know-bg)', borderRadius: 9, border: '0.5px solid var(--know-bdr)', marginBottom: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--know-col)', lineHeight: 1.6, fontStyle: 'italic' }}>
+            "Upgrade to Pro to get personalised pattern insights from your 7-day tracking data."
+          </div>
+        </div>
+        <div style={{ padding: '9px 10px', background: 'var(--know-bg)', borderRadius: 9, border: '0.5px solid var(--know-bdr)', marginBottom: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--know-col)', lineHeight: 1.6, fontStyle: 'italic' }}>
+            "Log daily for 7 days to unlock sleep, steps and mood correlation insights."
+          </div>
+        </div>
+        <div style={{ padding: '9px 10px', background: 'var(--know-bg)', borderRadius: 9, border: '0.5px solid var(--know-bdr)' }}>
+          <div style={{ fontSize: 12, color: 'var(--know-col)', lineHeight: 1.6, fontStyle: 'italic' }}>
+            "Your best days and habit patterns will surface here once you upgrade."
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (insightsLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[72, 60, 80].map((w, i) => (
+          <div key={i} className="shimmer" style={{ height: 50, borderRadius: 9 }} />
+        ))}
+      </div>
+    )
+  }
+
+  const lines = (insights || '').split('\n').filter(Boolean)
+  if (!lines.length) {
+    return (
+      <div style={{ padding: '9px 10px', background: 'var(--know-bg)', borderRadius: 9, border: '0.5px solid var(--know-bdr)', fontSize: 12, color: 'var(--know-col)', lineHeight: 1.6 }}>
+        Keep logging daily — insights will appear once you have 7 days of data.
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {lines.map((line, i) => (
+        <div key={i} style={{ padding: '9px 10px', background: 'var(--know-bg)', borderRadius: 9, border: '0.5px solid var(--know-bdr)' }}>
+          <div style={{ fontSize: 12, color: 'var(--know-col)', lineHeight: 1.6 }}>{line}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ── history ring detail ─────────────────────────────────── */
+function HistoryRingDetail({ ring }) {
+  const [bars, setBars] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setBars(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  const r     = ring.row
+  const score = r.day_score ?? 0
+  const col   = score >= 80 ? '#4ADE80' : score >= 60 ? '#F59E0B' : '#EF4444'
+  const label = score >= 85 ? 'Excellent day' : score >= 75 ? 'Great day' : score >= 65 ? 'Good day' : score >= 55 ? 'OK day' : 'Tough day'
+
+  const breakdown = [
+    { l: 'Sleep',  v: Math.round(Math.min((r.sleep  ?? 0) / 8,     1) * 100), col: 'var(--know-col)' },
+    { l: 'Water',  v: Math.round(Math.min((r.water  ?? 0) / 8,     1) * 100), col: 'var(--accent)'   },
+    { l: 'Steps',  v: Math.min(100, Math.round((r.steps ?? 0) / 10000 * 100)), col: '#22C55E'         },
+    { l: 'Mood',   v: Math.round(((r.mood_morning ?? 3) + (r.mood_evening ?? 3)) / 10 * 100), col: 'var(--pink-col)' },
+  ]
+
+  return (
+    <div style={{ marginTop: 12, background: 'var(--input-bg)', borderRadius: 14, padding: 16, border: '0.5px solid var(--border)', animation: 'fade-up 0.2s var(--ease-spring)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{ring.day}, {ring.dateNum}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{label}</div>
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: col, fontVariantNumeric: 'tabular-nums' }}>{score}</div>
+      </div>
+
+      <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600, marginBottom: 8 }}>Score breakdown</div>
+      {breakdown.map(b => (
+        <div key={b.l} style={{ marginBottom: 7 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-2)', marginBottom: 3 }}>
+            <span>{b.l}</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{b.v}%</span>
+          </div>
+          <div className="e-prog">
+            <div className="e-progb" style={{ width: bars ? `${b.v}%` : '0%', background: b.col, transition: 'width 0.5s var(--ease-spring)' }} />
+          </div>
+        </div>
+      ))}
+
+      <div className="chart-grid-2" style={{ marginTop: 12 }}>
+        <MiniCard label="Sleep"  val={r.sleep != null ? `${r.sleep}h` : '—'}             sub="logged" />
+        <MiniCard label="Steps"  val={r.steps != null ? Number(r.steps).toLocaleString() : '—'} sub="logged" />
+        <MiniCard label="Water"  val={`${r.water ?? 0}/8`}                                sub="cups"   />
+        <MiniCard label="Mood"   val={r.mood_morning != null ? `${r.mood_morning}↑ ${r.mood_evening ?? '?'}↓` : '—'} sub="AM / PM" />
+      </div>
     </div>
   )
 }
@@ -111,7 +317,7 @@ function DailyPanel({ today, loading }) {
   const sleepPct     = Math.round(Math.min((sleep || 0) / 8, 1) * 100)
   const waterPct     = Math.round(Math.min(water / 8, 1) * 100)
   const stepsPct     = Math.round(Math.min((steps || 0) / 10000, 1) * 100)
-  const checklistPct = 60 // hardcoded — wired in phase 10.4
+  const checklistPct = 60
   const moodPct      = Math.round((moodAM + moodPM) / 10 * 100)
 
   const scoreLine =
@@ -181,42 +387,11 @@ function DailyPanel({ today, loading }) {
   )
 }
 
-function getWeekStart() {
-  const d = new Date()
-  const diff = (d.getDay() + 6) % 7
-  const monday = new Date(d)
-  monday.setDate(d.getDate() - diff)
-  return monday.toISOString().slice(0, 10)
-}
-
 /* ── weekly panel ────────────────────────────────────────── */
-function WeeklyPanel({ data, loading, userId, profile }) {
-  const [selected, setSelected] = useState(6)
+function WeeklyPanel({ data, loading }) {
   const sleepRef = useRef(null)
   const prodRef  = useRef(null)
   const stepsRef = useRef(null)
-
-  const isUserPro = profile ? isPro(profile) : false
-  const weekStart = getWeekStart()
-
-  const trackingSummary = useMemo(() => {
-    if (!data.length) return {}
-    const avg = arr => arr.length ? +(arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(1) : null
-    return {
-      days:        data.length,
-      avgSleep:    avg(data.filter(r => r.sleep         != null).map(r => r.sleep)),
-      avgSteps:    avg(data.filter(r => r.steps         != null).map(r => r.steps)),
-      avgWater:    avg(data.filter(r => r.water         != null).map(r => r.water)),
-      avgScore:    avg(data.filter(r => r.day_score).map(r => r.day_score)),
-      avgProdHrs:  avg(data.filter(r => r.productive_hrs != null).map(r => r.productive_hrs)),
-    }
-  }, [data])
-
-  const { content: insights, loading: insightsLoading } = useAIContent({
-    type: 'ai-insights',
-    key: isUserPro && userId ? `ai-insights-${userId}-${weekStart}` : null,
-    userContext: trackingSummary,
-  })
 
   const weekDates   = lastNDays(7)
   const byDate      = Object.fromEntries(data.map(r => [r.date, r]))
@@ -253,42 +428,8 @@ function WeeklyPanel({ data, loading, userId, profile }) {
 
   if (loading) return <AnalyticsSkeleton rows={3} />
 
-  const rings = weekRows.map(w => ({
-    day:   isoAbbr(w.date),
-    date:  String(new Date(w.date + 'T12:00:00').getDate()),
-    score: w.row?.day_score ?? 0,
-  }))
-
-  const selDate  = weekRows[selected]
-  const selLabel = new Date(selDate.date + 'T12:00:00')
-    .toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })
-
   return (
     <div className="at-panel-enter">
-      <div className="hist-rings-scroll" style={{ marginBottom: 14 }}>
-        {rings.map((r, i) => (
-          <button
-            key={i}
-            className={`hist-ring-item${selected === i ? ' selected' : ''}`}
-            onClick={() => setSelected(i)}
-            aria-label={`${r.day} ${r.date} — score ${r.score}`}
-          >
-            <DayScoreRing score={r.score} size={40} strokeWidth={3} bgStroke="var(--border)" />
-            <div style={{ fontSize: 9, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{r.day}</div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>
-              {r.score || '—'}
-            </div>
-          </button>
-        ))}
-      </div>
-
-      <div style={{ background: 'var(--input-bg)', borderRadius: 10, padding: '8px 12px', marginBottom: 14, border: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{selLabel}</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>
-          {rings[selected].score ? `Score ${rings[selected].score}` : 'No data'}
-        </span>
-      </div>
-
       {data.length < 7 && (
         <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '8px 12px', background: 'var(--input-bg)', borderRadius: 10, border: '0.5px solid var(--border)', marginBottom: 14, lineHeight: 1.5 }}>
           Log for {7 - data.length} more day{7 - data.length === 1 ? '' : 's'} to see your full weekly patterns
@@ -310,31 +451,6 @@ function WeeklyPanel({ data, loading, userId, profile }) {
         <LegendItem color="#EF4444" label="Rest"       />
         <LegendItem color="#22C55E" label="Steps"      />
       </div>
-
-      {/* AI Insights — Pro only */}
-      <div className="chart-section-title" style={{ marginTop: 14 }}>
-        AI insights
-        {!isUserPro && <span className="pro-badge" style={{ marginLeft: 6 }}>Pro</span>}
-      </div>
-      {!isUserPro ? (
-        <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '10px 12px', background: 'var(--input-bg)', borderRadius: 10, border: '0.5px solid var(--border)', lineHeight: 1.6 }}>
-          Upgrade to Pro to get personalised pattern insights from your 7-day data.
-        </div>
-      ) : insightsLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {[72, 60, 80].map((w, i) => (
-            <div key={i} style={{ height: 14, width: `${w}%`, borderRadius: 6, background: 'var(--input-bg)', backgroundImage: 'linear-gradient(90deg, var(--input-bg) 0%, var(--border) 50%, var(--input-bg) 100%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite linear' }} />
-          ))}
-        </div>
-      ) : (
-        <div style={{ background: 'var(--input-bg)', borderRadius: 10, padding: '10px 12px', border: '0.5px solid var(--border)' }}>
-          {(insights || '').split('\n').filter(Boolean).map((line, i) => (
-            <div key={i} style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6, paddingBottom: i < 2 ? 6 : 0, borderBottom: i < 2 ? '0.5px solid var(--sub-divider)' : 'none', marginBottom: i < 2 ? 6 : 0 }}>
-              {line}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -348,14 +464,12 @@ function MonthlyPanel({ data, loading }) {
   const byDate     = Object.fromEntries(data.map(r => [r.date, r]))
   const monthRows  = monthDates.map(date => ({ date, row: byDate[date] || null }))
 
-  // Weekly avg sleep for 4 chunks
   const chunks   = [monthRows.slice(0, 7), monthRows.slice(7, 14), monthRows.slice(14, 21), monthRows.slice(21)]
   const avgSleep = chunks.map(ch => {
     const vals = ch.filter(w => w.row?.sleep != null).map(w => w.row.sleep)
     return vals.length ? +(vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(1) : 0
   })
 
-  // Average day score per day of week (Sun=0 … Sat=6)
   const scoresByDow = Array.from({ length: 7 }, () => [])
   monthRows.forEach(w => {
     if (w.row?.day_score) {
@@ -368,11 +482,9 @@ function MonthlyPanel({ data, loading }) {
     arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0
   )
 
-  // Habit calendar — leading blank cells for Mon-start grid
   const startOffset = (new Date(monthDates[0] + 'T12:00:00').getDay() + 6) % 7
   const calScores   = [...Array(startOffset).fill(0), ...monthRows.map(w => w.row?.day_score ?? 0)]
 
-  // Monthly aggregates
   const daysLogged   = monthRows.filter(w => w.row)
   const withSleep    = daysLogged.filter(w => w.row.sleep  != null)
   const withSteps    = daysLogged.filter(w => w.row.steps  != null)
@@ -433,26 +545,10 @@ function MonthlyPanel({ data, loading }) {
         </div>
       )}
       <div className="chart-grid-2">
-        <MiniCard
-          label="Avg sleep"
-          val={agg.sleep  != null ? `${agg.sleep}h`                  : '—'}
-          sub="Target 8h"
-        />
-        <MiniCard
-          label="Avg steps"
-          val={agg.steps  != null ? agg.steps.toLocaleString()        : '—'}
-          sub="Target 10,000"
-        />
-        <MiniCard
-          label="Water goal"
-          val={agg.waterLabel}
-          sub={agg.waterSub}
-        />
-        <MiniCard
-          label="Avg day score"
-          val={agg.score  != null ? String(agg.score)                 : '—'}
-          sub="out of 100"
-        />
+        <MiniCard label="Avg sleep"      val={agg.sleep  != null ? `${agg.sleep}h`              : '—'} sub="Target 8h"    />
+        <MiniCard label="Avg steps"      val={agg.steps  != null ? agg.steps.toLocaleString()    : '—'} sub="Target 10,000" />
+        <MiniCard label="Water goal"     val={agg.waterLabel}                                          sub={agg.waterSub}  />
+        <MiniCard label="Avg day score"  val={agg.score  != null ? String(agg.score)             : '—'} sub="out of 100"   />
       </div>
     </div>
   )

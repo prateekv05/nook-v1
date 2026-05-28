@@ -27,7 +27,29 @@ async function fetchFromFMP(tickers) {
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
+  const searchQuery  = searchParams.get('search')
   const tickersParam = searchParams.get('tickers')
+
+  // ── Company/ticker search ──────────────────────────────────
+  if (searchQuery) {
+    const supabase = await createSupabaseServerClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    try {
+      const url = `https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(searchQuery)}&limit=8&apikey=${process.env.FMP_API_KEY}`
+      const res = await fetch(url, { next: { revalidate: 0 } })
+      if (!res.ok) throw new Error(`FMP search error: ${res.status}`)
+      const data = await res.json()
+      const results = (Array.isArray(data) ? data : [])
+        .filter(r => r.exchangeShortName === 'NASDAQ' || r.exchangeShortName === 'NYSE' || r.exchangeShortName === 'NYSE ARCA' || r.exchangeShortName === 'AMEX')
+        .slice(0, 6)
+        .map(r => ({ symbol: r.symbol, name: r.name, exchange: r.exchangeShortName }))
+      return NextResponse.json({ results })
+    } catch {
+      return NextResponse.json({ results: [] })
+    }
+  }
 
   if (!tickersParam) {
     return NextResponse.json({ error: 'tickers query param is required (comma-separated)' }, { status: 400 })
