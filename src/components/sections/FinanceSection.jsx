@@ -495,7 +495,7 @@ export default function FinanceSection({ onBack }) {
       const { data: { user } } = await supabase.auth.getUser()
       const { data: inserted, error } = await supabase
         .from('watchlist')
-        .insert({ user_id: user.id, ticker: sym, display_order: watchlistItems.length + 1, is_active: true })
+        .upsert({ user_id: user.id, ticker: sym, display_order: watchlistItems.length + 1, is_active: true }, { onConflict: 'user_id,ticker' })
         .select('id, ticker')
         .single()
 
