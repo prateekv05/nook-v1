@@ -19,9 +19,12 @@ function expiresAt30s() {
 async function fetchFromFMP(tickers) {
   const url = `https://financialmodelingprep.com/api/v3/quote/${tickers}?apikey=${process.env.FMP_API_KEY}`
   const res = await fetch(url, { next: { revalidate: 0 } })
-  if (!res.ok) throw new Error(`FMP error: ${res.status}`)
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`FMP error: ${res.status} — ${text.slice(0, 200)}`)
+  }
   const data = await res.json()
-  if (!Array.isArray(data)) throw new Error('FMP returned non-array')
+  if (!Array.isArray(data)) throw new Error(`FMP returned non-array: ${JSON.stringify(data).slice(0, 200)}`)
   return data.map(formatQuote)
 }
 
@@ -41,10 +44,11 @@ export async function GET(request) {
       const res = await fetch(url, { next: { revalidate: 0 } })
       if (!res.ok) throw new Error(`FMP search error: ${res.status}`)
       const data = await res.json()
+      const MAJOR_EXCHANGES = new Set(['NASDAQ', 'NYSE', 'NYSE ARCA', 'NYSE MKT', 'AMEX', 'CBOE', 'OTC'])
       const results = (Array.isArray(data) ? data : [])
-        .filter(r => r.exchangeShortName === 'NASDAQ' || r.exchangeShortName === 'NYSE' || r.exchangeShortName === 'NYSE ARCA' || r.exchangeShortName === 'AMEX')
+        .filter(r => r.symbol && (MAJOR_EXCHANGES.has(r.exchangeShortName) || !r.exchangeShortName))
         .slice(0, 6)
-        .map(r => ({ symbol: r.symbol, name: r.name, exchange: r.exchangeShortName }))
+        .map(r => ({ symbol: r.symbol, name: r.name, exchange: r.exchangeShortName || '' }))
       return NextResponse.json({ results })
     } catch {
       return NextResponse.json({ results: [] })
@@ -107,7 +111,7 @@ export async function GET(request) {
     if (stale) {
       return NextResponse.json({ stocks: JSON.parse(stale.content), stale: true })
     }
-    return NextResponse.json({ error: 'Failed to fetch stock data' }, { status: 502 })
+    return NextResponse.json({ error: 'Failed to fetch stock data', detail: err.message }, { status: 502 })
   }
 
   return NextResponse.json({ stocks })
