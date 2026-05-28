@@ -5,15 +5,38 @@ import { useTheme } from '../../hooks/useTheme';
 import { useToast } from '../../hooks/useToast';
 
 const NEWS_TOPICS = [
-  'AI & Technology', 'Business & Markets', 'Geopolitics', 'Health & Medicine',
-  'Science & Space', 'Environment & Climate', 'Culture & Society', 'Sports',
-  'Law & Policy', 'Local & Regional', 'Finance & Economy', 'Politics',
-  'Food & Lifestyle', 'Travel', 'Education',
+  { value: 'ai-technology',    label: 'AI & Technology' },
+  { value: 'business-markets', label: 'Business & Markets' },
+  { value: 'geopolitics',      label: 'Geopolitics' },
+  { value: 'health-medicine',  label: 'Health & Medicine' },
+  { value: 'science-space',    label: 'Science & Space' },
+  { value: 'environment',      label: 'Environment' },
+  { value: 'culture-society',  label: 'Culture & Society' },
+  { value: 'sports',           label: 'Sports' },
+  { value: 'law-policy',       label: 'Law & Policy' },
+  { value: 'psychology',       label: 'Psychology' },
+  { value: 'philosophy',       label: 'Philosophy' },
+  { value: 'history',          label: 'History' },
+  { value: 'economics',        label: 'Economics' },
+  { value: 'design',           label: 'Design' },
+  { value: 'finance',          label: 'Finance' },
 ];
 const LEARN_TOPICS = [
-  'Personal Development', 'Philosophy', 'Psychology', 'History', 'Economics',
-  'Leadership', 'Science', 'Writing', 'Technology & AI', 'Creativity',
-  'Ethics & Society', 'Entrepreneurship', 'Design', 'Mathematics', 'Language',
+  { value: 'personal-development', label: 'Personal Development' },
+  { value: 'philosophy',           label: 'Philosophy' },
+  { value: 'psychology',           label: 'Psychology' },
+  { value: 'history',              label: 'History' },
+  { value: 'economics',            label: 'Economics' },
+  { value: 'leadership',           label: 'Leadership' },
+  { value: 'science',              label: 'Science' },
+  { value: 'writing',              label: 'Writing' },
+  { value: 'technology-ai',        label: 'Technology & AI' },
+  { value: 'creativity',           label: 'Creativity' },
+  { value: 'ethics-society',       label: 'Ethics & Society' },
+  { value: 'entrepreneurship',     label: 'Entrepreneurship' },
+  { value: 'stoicism',             label: 'Stoicism' },
+  { value: 'productivity',         label: 'Productivity' },
+  { value: 'investing',            label: 'Investing' },
 ];
 const TIMEZONES = [
   'UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
@@ -59,8 +82,8 @@ export default function SettingsView() {
   const [lastName, setLastName]       = useState('');
   const [timezone, setTimezone]       = useState('UTC');
 
-  const [newsTopics, setNewsTopics]   = useState(new Set(['AI & Technology', 'Business & Markets', 'Geopolitics', 'Health & Medicine', 'Science & Space']));
-  const [learnTopics, setLearnTopics] = useState(new Set(['Personal Development', 'Philosophy', 'Psychology']));
+  const [newsTopics, setNewsTopics]   = useState(new Set());
+  const [learnTopics, setLearnTopics] = useState(new Set());
 
   const [lifestyle, setLifestyle] = useState({ journal: true, gratitude: true, checklist: true, stress: true });
   const [incomeAmt, setIncomeAmt]       = useState('');
@@ -128,7 +151,7 @@ export default function SettingsView() {
   }
 
   async function handleSave() {
-    if (!userId) return;
+    if (!userId) { showToast('Not signed in — please refresh', 'error'); return; }
     setSaving(true);
     const supabase = createClient();
     try {
@@ -215,14 +238,14 @@ export default function SettingsView() {
             Select up to 5 topics for your daily news feed
           </div>
           <div className="topic-pills">
-            {NEWS_TOPICS.map((t) => (
+            {NEWS_TOPICS.map(({ value, label }) => (
               <button
-                key={t}
-                className={`topic-pill${newsTopics.has(t) ? ' sel' : ''}`}
-                onClick={() => togglePill(setNewsTopics, t, 5)}
+                key={value}
+                className={`topic-pill${newsTopics.has(value) ? ' sel' : ''}`}
+                onClick={() => togglePill(setNewsTopics, value, 5)}
                 disabled={loading}
               >
-                {t}
+                {label}
               </button>
             ))}
           </div>
@@ -238,14 +261,14 @@ export default function SettingsView() {
             Choose topics that drive your Concept of the Day, Deep Dive, and Comfort Zone cards
           </div>
           <div className="topic-pills">
-            {LEARN_TOPICS.map((t) => (
+            {LEARN_TOPICS.map(({ value, label }) => (
               <button
-                key={t}
-                className={`topic-pill${learnTopics.has(t) ? ' sel-life' : ''}`}
-                onClick={() => togglePill(setLearnTopics, t, 5)}
+                key={value}
+                className={`topic-pill${learnTopics.has(value) ? ' sel-life' : ''}`}
+                onClick={() => togglePill(setLearnTopics, value, 5)}
                 disabled={loading}
               >
-                {t}
+                {label}
               </button>
             ))}
           </div>
