@@ -3,16 +3,21 @@ import { createSupabaseServerClient, supabaseAdmin } from '@/lib/supabase-server
 
 
 const TOPIC_QUERY_MAP = {
-  'ai-tech':      'artificial intelligence',
-  'business':     'business finance',
-  'geopolitics':  'geopolitics world',
-  'health':       'health medicine',
-  'science':      'science space',
-  'environment':  'climate environment',
-  'culture':      'culture society',
-  'sports':       'sports',
-  'law':          'law policy',
-  'local':        'local news',
+  'ai-technology':    'artificial intelligence technology',
+  'business-markets': 'business markets',
+  'geopolitics':      'geopolitics world politics',
+  'health-medicine':  'health medicine',
+  'science-space':    'science space',
+  'environment':      'climate environment',
+  'culture-society':  'culture society',
+  'sports':           'sports',
+  'law-policy':       'law policy',
+  'psychology':       'psychology mental health',
+  'philosophy':       'philosophy ethics',
+  'history':          'history',
+  'economics':        'economics',
+  'design':           'design creativity',
+  'finance':          'personal finance investing',
 }
 
 function midnightExpiry() {

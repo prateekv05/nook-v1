@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAIContent } from '@/hooks/useAIContent'
+import { createClient } from '@/lib/supabase'
 
 function AISkeleton({ height = 48 }) {
   return (
@@ -9,73 +10,58 @@ function AISkeleton({ height = 48 }) {
   )
 }
 
-const ALL_NEWS = [
-  {
-    tag: 'AI & Tech',
-    tagBg: 'var(--know-bg)', tagColor: 'var(--know-col)',
-    title: 'OpenAI releases new reasoning model with improved coding abilities',
-    summary: 'The latest model targets enterprise customers with improved speed and lower costs, signalling a shift toward efficiency over raw capability.',
-    src: 'TechCrunch',
-    filter: 'AI',
-  },
-  {
-    tag: 'AI & Tech',
-    tagBg: 'var(--know-bg)', tagColor: 'var(--know-col)',
-    title: 'EU AI Act enforcement begins for developers',
-    summary: 'Companies must comply with transparency and audit requirements under the landmark legislation.',
-    src: 'Reuters',
-    filter: 'AI',
-  },
-  {
-    tag: 'Markets',
-    tagBg: 'var(--fin-bg)', tagColor: 'var(--fin-col)',
-    title: 'Fed signals two rate cuts possible in 2026 as inflation cools',
-    summary: 'The Fed kept rates unchanged, citing persistent services inflation while acknowledging cooling in goods prices.',
-    src: 'Reuters',
-    filter: 'Markets',
-  },
-  {
-    tag: 'Markets',
-    tagBg: 'var(--fin-bg)', tagColor: 'var(--fin-col)',
-    title: 'Nvidia surpasses $3T market cap again on AI demand',
-    summary: 'Strong quarterly results driven by AI infrastructure spending pushed Nvidia back above $3 trillion.',
-    src: 'Bloomberg',
-    filter: 'Markets',
-  },
-  {
-    tag: 'Science',
-    tagBg: 'var(--pink-bg)', tagColor: 'var(--pink-col)',
-    title: 'New study links sleep quality directly to decision-making performance',
-    summary: 'New research shows consistent deep sleep reduces risk of cardiovascular events by up to 34%.',
-    src: 'Nature',
-    filter: 'Science',
-  },
-  {
-    tag: 'Geopolitics',
-    tagBg: 'var(--life-bg)', tagColor: 'var(--life-col)',
-    title: 'G7 agrees new framework on digital trade',
-    summary: 'Leaders reached an agreement covering AI governance, data flows, and cross-border digital services.',
-    src: 'The Guardian',
-    filter: 'Other',
-  },
-]
-
-const FILTERS = ['All', 'AI', 'Markets', 'Science', 'Other']
-
 const STREAK_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 const STREAK_DONE = [true, true, true, true, false, false, false]
 
 export default function KnowledgeSection({ onBack, learningTopics = [] }) {
   const [activeFilter, setActiveFilter] = useState('All')
+  const [allNews, setAllNews] = useState([])
+  const [newsLoading, setNewsLoading] = useState(true)
 
   const todayKey   = new Date().toISOString().slice(0, 10)
   const firstTopic = learningTopics[0] || 'general knowledge'
   const { content: dykContent,     loading: dykLoading     } = useAIContent({ type: 'did-you-know', key: `did-you-know-${todayKey}` })
   const { content: conceptContent, loading: conceptLoading } = useAIContent({ type: 'concept', key: `concept-${firstTopic}-${todayKey}`, userContext: { topics: firstTopic } })
 
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { setNewsLoading(false); return }
+      supabase.from('user_preferences')
+        .select('news_topics')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          const topics = data?.news_topics?.length > 0
+            ? data.news_topics.join(',')
+            : 'technology,science,business'
+          return fetch(`/api/news?topics=${topics}`)
+        })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          const flat = Object.entries(data.results || {}).flatMap(([topic, arts]) =>
+            arts.map(a => ({
+              tag:      a.tag || topic,
+              tagBg:    'var(--know-bg)',
+              tagColor: 'var(--know-col)',
+              title:    a.title,
+              summary:  a.summary || '',
+              src:      a.source || '',
+              url:      a.url || '',
+              filter:   topic,
+            }))
+          )
+          setAllNews(flat)
+        })
+        .catch(() => {})
+        .finally(() => setNewsLoading(false))
+    })
+  }, [])
+
+  const filters = ['All', ...new Set(allNews.map(n => n.filter))]
   const news = activeFilter === 'All'
-    ? ALL_NEWS
-    : ALL_NEWS.filter(n => n.filter === activeFilter)
+    ? allNews
+    : allNews.filter(n => n.filter === activeFilter)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
@@ -102,7 +88,7 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
 
             {/* Filter tabs */}
             <div style={{ display: 'flex', gap: 5, marginBottom: 12, flexWrap: 'wrap' }}>
-              {FILTERS.map(f => (
+              {filters.map(f => (
                 <button
                   key={f}
                   className={`cl-filter-btn${activeFilter === f ? ' active' : ''}`}
@@ -114,17 +100,41 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
               ))}
             </div>
 
-            {news.map((n, i) => (
-              <div className="e-news" key={i}>
-                <span className="e-ntag" style={{ background: n.tagBg, color: n.tagColor }}>{n.tag}</span>
-                <div className="e-ntitle">{n.title}</div>
-                <div className="e-nsummary">{n.summary}</div>
-                <div className="e-nmeta">
-                  <span className="e-nsrc">{n.src}</span>
-                  <button className="e-btn-ghost">know more</button>
+            {newsLoading ? (
+              [1,2,3,4].map(i => (
+                <div key={i} className="e-news" style={{ pointerEvents: 'none' }}>
+                  <div className="shimmer" style={{ width: 70, height: 18, borderRadius: 5, marginBottom: 6 }} />
+                  <div className="shimmer" style={{ width: '90%', height: 14, borderRadius: 5, marginBottom: 4 }} />
+                  <div className="shimmer" style={{ width: '70%', height: 12, borderRadius: 5, marginBottom: 8 }} />
+                  <div className="shimmer" style={{ width: 50, height: 11, borderRadius: 4 }} />
                 </div>
-              </div>
-            ))}
+              ))
+            ) : news.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--text-3)', padding: '16px 0' }}>No news available.</div>
+            ) : (
+              news.map((n, i) => (
+                <div className="e-news" key={i}>
+                  <span className="e-ntag" style={{ background: n.tagBg, color: n.tagColor }}>{n.tag}</span>
+                  <div className="e-ntitle">{n.title}</div>
+                  <div className="e-nsummary">{n.summary}</div>
+                  <div className="e-nmeta">
+                    <span className="e-nsrc">{n.src}</span>
+                    {n.url ? (
+                      <a
+                        className="e-btn-ghost"
+                        href={n.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        know more
+                      </a>
+                    ) : (
+                      <span className="e-btn-ghost" style={{ opacity: 0.4 }}>know more</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* RIGHT column */}

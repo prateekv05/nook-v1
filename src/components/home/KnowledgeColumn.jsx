@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAIContent } from '@/hooks/useAIContent'
+import { createClient } from '@/lib/supabase'
 
 function AISkeleton({ height = 36 }) {
   return (
@@ -88,6 +89,7 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
   const [newsAuthError, setNewsAuthError] = useState(false)
   const [usingFallback, setUsingFallback] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
+  const [userNewsTopics, setUserNewsTopics] = useState(null)
 
   const todayKey   = new Date().toISOString().slice(0, 10)
   const firstTopic = learningTopics[0] || 'general knowledge'
@@ -95,8 +97,22 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
   const { content: conceptContent, loading: conceptLoading, error: conceptError } = useAIContent({ type: 'concept', key: `concept-${firstTopic}-${todayKey}`, userContext: { topics: firstTopic } })
 
   useEffect(() => {
-    const queryTopics = learningTopics.length > 0
-      ? learningTopics.slice(0, 3).join(',')
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { setUserNewsTopics([]); return }
+      supabase.from('user_preferences')
+        .select('news_topics')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => setUserNewsTopics(data?.news_topics?.length > 0 ? data.news_topics : []))
+    })
+  }, [])
+
+  useEffect(() => {
+    if (userNewsTopics === null) return
+
+    const queryTopics = userNewsTopics.length > 0
+      ? userNewsTopics.slice(0, 5).join(',')
       : 'technology,science,business'
 
     setNewsError(false)
@@ -115,7 +131,7 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
               label: topic.charAt(0).toUpperCase() + topic.slice(1).replace(/-/g, ' & '),
               tagBg:    fallback.tagBg,
               tagColor: fallback.tagColor,
-              articles: arts.slice(0, 3).map(a => ({ title: a.title, src: a.source || a.source_id || '' })),
+              articles: arts.slice(0, 3).map(a => ({ title: a.title, src: a.source || '', url: a.url || '' })),
             }
           })
         if (updated.length > 0) {
@@ -127,7 +143,7 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
       })
       .catch(status => { if (status === 401) setNewsAuthError(true); else setNewsError(true) })
       .finally(() => setNewsLoading(false))
-  }, [learningTopics.join(','), retryCount]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userNewsTopics, retryCount]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function setArticle(topicId, idx, e) {
     e.stopPropagation()
@@ -202,7 +218,20 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
                     ))}
                   </div>
                 </div>
-                <div className="know-topic-title">{art.title}</div>
+                {art.url ? (
+                  <a
+                    className="know-topic-title"
+                    href={art.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{ textDecoration: 'none', cursor: 'pointer' }}
+                  >
+                    {art.title}
+                  </a>
+                ) : (
+                  <div className="know-topic-title">{art.title}</div>
+                )}
                 <div className="news-src">{art.src}</div>
               </div>
             )
