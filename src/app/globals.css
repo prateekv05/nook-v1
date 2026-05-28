@@ -221,8 +221,15 @@ body {
   padding: 16px 10px;
   flex-shrink: 0;
   transition: background 0.3s;
-  position: relative;
+  position: sticky;
+  top: 10px;
+  height: calc(100dvh - 60px);
+  overflow-y: auto;
+  align-self: flex-start;
 }
+.sidebar::-webkit-scrollbar { display: none; }
+.sidebar { scrollbar-width: none; }
+
 .s-logo-row {
   display: flex;
   align-items: center;

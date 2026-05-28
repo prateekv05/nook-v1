@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '../../lib/supabase';
 import { useTheme } from '../../hooks/useTheme';
 import { useToast } from '../../hooks/useToast';
 
@@ -25,10 +26,10 @@ const THEMES = [
   { id: 'dark',    label: 'Dark' },
 ];
 
-function Toggle({ checked, onChange }) {
+function Toggle({ checked, onChange, disabled }) {
   return (
     <label className="toggle-sw">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} disabled={disabled} />
       <span className="toggle-slider" />
     </label>
   );
@@ -47,12 +48,16 @@ function SettRow({ label, sub, children }) {
 }
 
 export default function SettingsView() {
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
   const { showToast } = useToast();
 
-  const [firstName, setFirstName]   = useState('Alex');
-  const [lastName, setLastName]     = useState('Lewis');
-  const [timezone, setTimezone]     = useState('UTC');
+  const [localTheme, setLocalTheme] = useState(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem('nook-theme') || 'calm') : 'calm'
+  );
+
+  const [firstName, setFirstName]     = useState('');
+  const [lastName, setLastName]       = useState('');
+  const [timezone, setTimezone]       = useState('UTC');
 
   const [newsTopics, setNewsTopics]   = useState(new Set(['AI & Technology', 'Business & Markets', 'Geopolitics', 'Health & Medicine', 'Science & Space']));
   const [learnTopics, setLearnTopics] = useState(new Set(['Personal Development', 'Philosophy', 'Psychology']));
@@ -60,7 +65,53 @@ export default function SettingsView() {
   const [lifestyle, setLifestyle] = useState({ journal: true, gratitude: true, checklist: true, stress: true });
   const [incomeAmt, setIncomeAmt]       = useState('');
   const [incomePeriod, setIncomePeriod] = useState('Monthly');
-  const [notifs, setNotifs] = useState({ morning: false, weekly: false, streak: false });
+  const [notifs, setNotifs] = useState({ morning: false, evening: false, weekly: false });
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+  const [userId, setUserId]   = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      const supabase = createClient();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { if (mounted) setLoading(false); return; }
+        const uid = session.user.id;
+        if (mounted) setUserId(uid);
+
+        const [{ data: profile }, { data: prefs }] = await Promise.all([
+          supabase.from('profiles').select('first_name,last_name,timezone').eq('id', uid).single(),
+          supabase.from('user_preferences').select('theme,news_topics,learning_topics,lifestyle_prefs,income_goal_amount,income_goal_period,notification_preferences').eq('user_id', uid).single(),
+        ]);
+
+        if (!mounted) return;
+
+        if (profile) {
+          if (profile.first_name) setFirstName(profile.first_name);
+          if (profile.last_name)  setLastName(profile.last_name);
+          if (profile.timezone)   setTimezone(profile.timezone);
+        }
+
+        if (prefs) {
+          if (prefs.theme) { setLocalTheme(prefs.theme); setTheme(prefs.theme); }
+          if (prefs.news_topics?.length)      setNewsTopics(new Set(prefs.news_topics));
+          if (prefs.learning_topics?.length)  setLearnTopics(new Set(prefs.learning_topics));
+          if (prefs.lifestyle_prefs)          setLifestyle(prefs.lifestyle_prefs);
+          if (prefs.income_goal_amount)       setIncomeAmt(String(prefs.income_goal_amount));
+          if (prefs.income_goal_period)       setIncomePeriod(prefs.income_goal_period);
+          if (prefs.notification_preferences) setNotifs(prefs.notification_preferences);
+        }
+      } catch {
+        if (mounted) showToast("Couldn't load your settings — showing defaults", 'error');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   function togglePill(setFn, val, max) {
     setFn((prev) => {
@@ -73,7 +124,42 @@ export default function SettingsView() {
 
   function handleTheme(t) {
     setTheme(t);
-    showToast('Theme updated', 'info');
+    setLocalTheme(t);
+  }
+
+  async function handleSave() {
+    if (!userId) return;
+    setSaving(true);
+    const supabase = createClient();
+    try {
+      const [profileRes, prefsRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .update({ first_name: firstName, last_name: lastName, timezone })
+          .eq('id', userId),
+        supabase
+          .from('user_preferences')
+          .upsert({
+            user_id: userId,
+            theme: localTheme,
+            news_topics: [...newsTopics],
+            learning_topics: [...learnTopics],
+            lifestyle_prefs: lifestyle,
+            income_goal_amount: incomeAmt ? Number(incomeAmt) : null,
+            income_goal_period: incomePeriod,
+            notification_preferences: notifs,
+          }, { onConflict: 'user_id' }),
+      ]);
+
+      if (profileRes.error) throw profileRes.error;
+      if (prefsRes.error)   throw prefsRes.error;
+
+      showToast('Settings saved ✓', 'success');
+    } catch {
+      showToast("Couldn't save — please try again", 'error');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -84,13 +170,13 @@ export default function SettingsView() {
         <div className="sett-card">
           <div className="sett-card-title">Account Details</div>
           <SettRow label="First name">
-            <input className="sett-input" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" />
+            <input className="sett-input" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" disabled={loading} />
           </SettRow>
           <SettRow label="Last name">
-            <input className="sett-input" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" />
+            <input className="sett-input" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" disabled={loading} />
           </SettRow>
           <SettRow label="Timezone" sub="Used for day score resets and reminders">
-            <select className="sett-input" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+            <select className="sett-input" value={timezone} onChange={(e) => setTimezone(e.target.value)} disabled={loading}>
               {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
             </select>
           </SettRow>
@@ -107,10 +193,10 @@ export default function SettingsView() {
                   onClick={() => handleTheme(t.id)}
                   style={{
                     fontSize: 12, padding: '6px 14px', borderRadius: 8,
-                    border: theme === t.id ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
-                    background: theme === t.id ? 'var(--accent-bg)' : 'var(--input-bg)',
-                    color: theme === t.id ? 'var(--accent)' : 'var(--text-2)',
-                    fontWeight: theme === t.id ? 500 : 400,
+                    border: localTheme === t.id ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                    background: localTheme === t.id ? 'var(--accent-bg)' : 'var(--input-bg)',
+                    color: localTheme === t.id ? 'var(--accent)' : 'var(--text-2)',
+                    fontWeight: localTheme === t.id ? 500 : 400,
                     cursor: 'pointer', fontFamily: 'var(--font-sans)',
                     transition: 'all 0.2s var(--ease-spring)',
                   }}
@@ -134,6 +220,7 @@ export default function SettingsView() {
                 key={t}
                 className={`topic-pill${newsTopics.has(t) ? ' sel' : ''}`}
                 onClick={() => togglePill(setNewsTopics, t, 5)}
+                disabled={loading}
               >
                 {t}
               </button>
@@ -156,6 +243,7 @@ export default function SettingsView() {
                 key={t}
                 className={`topic-pill${learnTopics.has(t) ? ' sel-life' : ''}`}
                 onClick={() => togglePill(setLearnTopics, t, 5)}
+                disabled={loading}
               >
                 {t}
               </button>
@@ -170,16 +258,16 @@ export default function SettingsView() {
         <div className="sett-card">
           <div className="sett-card-title">Lifestyle Features</div>
           <SettRow label="Journal" sub="Daily free-write with AI prompts">
-            <Toggle checked={lifestyle.journal} onChange={(v) => setLifestyle((p) => ({ ...p, journal: v }))} />
+            <Toggle checked={lifestyle.journal} onChange={(v) => setLifestyle((p) => ({ ...p, journal: v }))} disabled={loading} />
           </SettRow>
           <SettRow label="Gratitude Log" sub="Three daily gratitude entries">
-            <Toggle checked={lifestyle.gratitude} onChange={(v) => setLifestyle((p) => ({ ...p, gratitude: v }))} />
+            <Toggle checked={lifestyle.gratitude} onChange={(v) => setLifestyle((p) => ({ ...p, gratitude: v }))} disabled={loading} />
           </SettRow>
           <SettRow label="Daily Checklist" sub="Task tracking with calendar history">
-            <Toggle checked={lifestyle.checklist} onChange={(v) => setLifestyle((p) => ({ ...p, checklist: v }))} />
+            <Toggle checked={lifestyle.checklist} onChange={(v) => setLifestyle((p) => ({ ...p, checklist: v }))} disabled={loading} />
           </SettRow>
           <SettRow label="Stress Check-in" sub="Check in anytime — morning, midday or evening">
-            <Toggle checked={lifestyle.stress} onChange={(v) => setLifestyle((p) => ({ ...p, stress: v }))} />
+            <Toggle checked={lifestyle.stress} onChange={(v) => setLifestyle((p) => ({ ...p, stress: v }))} disabled={loading} />
           </SettRow>
         </div>
 
@@ -196,8 +284,9 @@ export default function SettingsView() {
                 value={incomeAmt}
                 onChange={(e) => setIncomeAmt(e.target.value)}
                 style={{ minWidth: 110, fontVariantNumeric: 'tabular-nums' }}
+                disabled={loading}
               />
-              <select className="sett-input" value={incomePeriod} onChange={(e) => setIncomePeriod(e.target.value)} style={{ minWidth: 100 }}>
+              <select className="sett-input" value={incomePeriod} onChange={(e) => setIncomePeriod(e.target.value)} style={{ minWidth: 100 }} disabled={loading}>
                 <option>Monthly</option>
                 <option>Yearly</option>
               </select>
@@ -209,13 +298,13 @@ export default function SettingsView() {
         <div className="sett-card">
           <div className="sett-card-title">Notifications</div>
           <SettRow label="Daily check-in" sub="Morning reminder to log your day">
-            <Toggle checked={notifs.morning} onChange={(v) => setNotifs((p) => ({ ...p, morning: v }))} />
+            <Toggle checked={notifs.morning} onChange={(v) => setNotifs((p) => ({ ...p, morning: v }))} disabled={loading} />
           </SettRow>
           <SettRow label="Weekly reflection" sub="New content alert every Monday">
-            <Toggle checked={notifs.weekly} onChange={(v) => setNotifs((p) => ({ ...p, weekly: v }))} />
+            <Toggle checked={notifs.weekly} onChange={(v) => setNotifs((p) => ({ ...p, weekly: v }))} disabled={loading} />
           </SettRow>
           <SettRow label="Streak alerts" sub="Get notified when your streak is at risk">
-            <Toggle checked={notifs.streak} onChange={(v) => setNotifs((p) => ({ ...p, streak: v }))} />
+            <Toggle checked={notifs.evening} onChange={(v) => setNotifs((p) => ({ ...p, evening: v }))} disabled={loading} />
           </SettRow>
         </div>
 
@@ -245,8 +334,13 @@ export default function SettingsView() {
           <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8, textAlign: 'center', position: 'relative' }}>No card required · Cancel any time</div>
         </div>
 
-        <button className="sett-save-btn" onClick={() => showToast('Settings saved ✓', 'success')}>
-          Save changes
+        <button
+          className="sett-save-btn"
+          onClick={handleSave}
+          disabled={loading || saving}
+          style={{ opacity: (loading || saving) ? 0.6 : 1, cursor: (loading || saving) ? 'not-allowed' : 'pointer' }}
+        >
+          {loading ? 'Loading…' : saving ? 'Saving…' : 'Save changes'}
         </button>
 
       </div>
