@@ -21,6 +21,14 @@ const CAT_FILTERS = [
   { id: 'trip',   icon: 'ph-airplane',   label: 'Trip'   },
 ]
 
+const CUSTOM_PALETTE = [
+  { bg: 'rgba(168,85,247,0.07)',  bdr: 'rgba(168,85,247,0.18)',  col: '#7C3AED' },
+  { bg: 'rgba(236,72,153,0.07)', bdr: 'rgba(236,72,153,0.18)', col: '#BE185D' },
+  { bg: 'rgba(14,165,233,0.07)', bdr: 'rgba(14,165,233,0.18)', col: '#0284C7' },
+  { bg: 'rgba(234,179,8,0.07)',  bdr: 'rgba(234,179,8,0.18)',  col: '#A16207' },
+  { bg: 'rgba(239,68,68,0.07)',  bdr: 'rgba(239,68,68,0.18)',  col: '#B91C1C' },
+]
+
 const EMOJIS = ['😌', '🙂', '😐', '😕', '😤']
 
 function formatHistoryDate(iso) {
@@ -56,6 +64,9 @@ export default function LifestyleSection({ onBack }) {
   const [newTask, setNewTask]   = useState('')
   const [newTaskCat, setNewTaskCat] = useState('home')
   const [showCatPicker, setShowCatPicker] = useState(false)
+  const [customCats, setCustomCats] = useState([])
+  const [newCatInput, setNewCatInput] = useState('')
+  const [showNewCatInput, setShowNewCatInput] = useState(false)
 
   // Journal
   const [journal, setJournal]       = useState('')
@@ -217,6 +228,34 @@ export default function LifestyleSection({ onBack }) {
 
   useEffect(() => { loadChecklist() }, [loadChecklist])
 
+  // ── Load custom categories from localStorage ────────────────────────────
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('nook-checklist-custom-cats') || '[]')
+      if (Array.isArray(stored)) setCustomCats(stored)
+    } catch {}
+  }, [])
+
+  function addCustomCat() {
+    const name = newCatInput.trim()
+    if (!name) return
+    const id = name.toLowerCase().replace(/\s+/g, '-')
+    if (CAT_STYLE[id] || customCats.some(c => c.id === id)) {
+      setNewTaskCat(id)
+      setShowNewCatInput(false)
+      setNewCatInput('')
+      setShowCatPicker(false)
+      return
+    }
+    const updated = [...customCats, { id, label: name }]
+    setCustomCats(updated)
+    try { localStorage.setItem('nook-checklist-custom-cats', JSON.stringify(updated)) } catch {}
+    setNewTaskCat(id)
+    setNewCatInput('')
+    setShowNewCatInput(false)
+    setShowCatPicker(false)
+  }
+
   // ── Load journal + profile ──────────────────────────────────────────────
   useEffect(() => {
     async function loadJournal() {
@@ -362,9 +401,23 @@ export default function LifestyleSection({ onBack }) {
     if (error) { addToast("Couldn't save — try again", 'error'); return }
     setGratId(data.id)
     setGratSaved(true)
-    setGratHistoryLoaded(false)
-    setGratHistory([])
     addToast('Gratitude saved ✓', 'success')
+
+    // Refresh history in-place if panel is open; otherwise just invalidate cache
+    if (showHistory) {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - 14)
+      const { data: fresh } = await supabase
+        .from('gratitude_logs')
+        .select('date, entry_1, entry_2, entry_3')
+        .eq('user_id', user.id)
+        .gte('date', cutoff.toISOString().slice(0, 10))
+        .order('date', { ascending: false })
+      setGratHistory(fresh || [])
+      setGratHistoryLoaded(true)
+    } else {
+      setGratHistoryLoaded(false)
+    }
   }
 
   // ── Load gratitude history ──────────────────────────────────────────────
@@ -631,6 +684,18 @@ export default function LifestyleSection({ onBack }) {
       loadChecklist()
     }
   }
+
+  const allCatStyle = {
+    ...CAT_STYLE,
+    ...Object.fromEntries(
+      customCats.map((c, i) => [c.id, { ...CUSTOM_PALETTE[i % CUSTOM_PALETTE.length], icon: 'ph-tag', label: c.label }])
+    ),
+  }
+
+  const allCatFilters = [
+    ...CAT_FILTERS,
+    ...customCats.map(c => ({ id: c.id, icon: 'ph-tag', label: c.label })),
+  ]
 
   const filtered  = clFilter === 'all' ? items : items.filter(i => i.cat === clFilter)
   const doneCount = items.filter(i => i.done).length
@@ -899,7 +964,7 @@ export default function LifestyleSection({ onBack }) {
 
               {/* Category filter tabs */}
               <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                {CAT_FILTERS.map(f => (
+                {allCatFilters.map(f => (
                   <button
                     key={f.id}
                     className={`cl-filter-btn${clFilter === f.id ? ' active' : ''}`}
@@ -932,7 +997,7 @@ export default function LifestyleSection({ onBack }) {
 
               {/* Items */}
               {!loading && filtered.map(item => {
-                const cs = CAT_STYLE[item.cat] || CAT_STYLE.home
+                const cs = allCatStyle[item.cat] || allCatStyle.home
                 return (
                   <div key={item.id} className="e-check" style={{ position: 'relative' }}>
                     <div
@@ -975,16 +1040,16 @@ export default function LifestyleSection({ onBack }) {
                 </div>
                 <div style={{ marginTop: 6, position: 'relative' }}>
                   <button
-                    onClick={() => setShowCatPicker(p => !p)}
-                    style={{ fontSize: 11, padding: '3px 10px', borderRadius: 7, border: `0.5px solid ${CAT_STYLE[newTaskCat].bdr}`, background: CAT_STYLE[newTaskCat].bg, color: CAT_STYLE[newTaskCat].col, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.2s' }}
+                    onClick={() => { setShowCatPicker(p => !p); setShowNewCatInput(false); setNewCatInput('') }}
+                    style={{ fontSize: 11, padding: '3px 10px', borderRadius: 7, border: `0.5px solid ${(allCatStyle[newTaskCat] || allCatStyle.home).bdr}`, background: (allCatStyle[newTaskCat] || allCatStyle.home).bg, color: (allCatStyle[newTaskCat] || allCatStyle.home).col, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.2s' }}
                   >
-                    <i className={`ph-bold ${CAT_STYLE[newTaskCat].icon}`} />
-                    {CAT_STYLE[newTaskCat].label}
+                    <i className={`ph-bold ${(allCatStyle[newTaskCat] || allCatStyle.home).icon}`} />
+                    {(allCatStyle[newTaskCat] || allCatStyle.home).label}
                     <i className={`ph-bold ph-caret-${showCatPicker ? 'up' : 'down'}`} style={{ fontSize: 9 }} />
                   </button>
                   {showCatPicker && (
-                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: 'var(--card-bg)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 'var(--z-sticky)', boxShadow: 'var(--card-sh)', minWidth: 120 }}>
-                      {Object.entries(CAT_STYLE).map(([key, s]) => (
+                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: 'var(--card-bg)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 'var(--z-sticky)', boxShadow: 'var(--card-sh)', minWidth: 140 }}>
+                      {Object.entries(allCatStyle).map(([key, s]) => (
                         <button
                           key={key}
                           onClick={() => { setNewTaskCat(key); setShowCatPicker(false) }}
@@ -995,6 +1060,37 @@ export default function LifestyleSection({ onBack }) {
                           <i className={`ph-bold ${s.icon}`} /> {s.label}
                         </button>
                       ))}
+                      <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
+                      {!showNewCatInput ? (
+                        <button
+                          onClick={() => setShowNewCatInput(true)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 7, border: 'none', background: 'transparent', color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12, textAlign: 'left', transition: 'background 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--input-bg)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <i className="ph-bold ph-plus" /> New category
+                        </button>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 4, padding: '4px 6px' }}>
+                          <input
+                            autoFocus
+                            value={newCatInput}
+                            onChange={e => setNewCatInput(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') addCustomCat()
+                              if (e.key === 'Escape') { setShowNewCatInput(false); setNewCatInput('') }
+                            }}
+                            placeholder="Name..."
+                            style={{ flex: 1, fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '0.5px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text-1)', fontFamily: 'var(--font-sans)', outline: 'none' }}
+                          />
+                          <button
+                            onClick={addCustomCat}
+                            style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: 'none', background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}
+                          >
+                            Add
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
