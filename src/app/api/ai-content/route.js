@@ -118,7 +118,10 @@ No extra text.`
       return 'Share one fascinating, surprising fact that most people don\'t know. 2-3 sentences. Plain text only, no markdown.'
 
     case 'concept':
-      return `Explain one interesting intellectual concept${ctx.topics ? ` related to ${ctx.topics}` : ''} in 2-3 sentences that a curious person would find valuable. Plain text only, no markdown.`
+      return `Give one interesting intellectual concept${ctx.topics ? ` related to ${ctx.topics}` : ''} that a curious person would find valuable. Format exactly as:
+CONCEPT: [short concept name — 1-4 words, e.g. "Dunning-Kruger Effect", "Compounding", "Sunk Cost Fallacy"]
+EXPLANATION: [2-3 sentences explaining it simply with a real-world example]
+No extra text.`
 
     case 'journal-prompt':
       return `Generate a thoughtful journaling prompt${ctx.mood ? ` for someone feeling ${ctx.mood}` : ''}. One sentence, thought-provoking, introspective. No markdown.`

@@ -30,7 +30,16 @@ function AISkeleton({ height = 48 }) {
 }
 
 const STREAK_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-const STREAK_DONE = [true, true, true, true, false, false, false]
+
+function parseConceptContent(raw) {
+  if (!raw) return { name: null, explanation: null }
+  const nameMatch = raw.match(/^CONCEPT:\s*(.+)/m)
+  const explMatch = raw.match(/^EXPLANATION:\s*([\s\S]+)/m)
+  if (nameMatch && explMatch) {
+    return { name: nameMatch[1].trim(), explanation: explMatch[1].trim() }
+  }
+  return { name: null, explanation: raw }
+}
 
 export default function KnowledgeSection({ onBack, learningTopics = [] }) {
   const [activeFilter, setActiveFilter] = useState('All')
@@ -39,6 +48,9 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
   const [dykExpanded, setDykExpanded] = useState(false)
   const [conceptExpanded, setConceptExpanded] = useState(false)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const [streak, setStreak] = useState(0)
+  const [bestStreak, setBestStreak] = useState(0)
+  const [weekDone, setWeekDone] = useState([false,false,false,false,false,false,false])
 
   const todayKey   = new Date().toISOString().slice(0, 10)
   const firstTopic = learningTopics[0] || 'general knowledge'
@@ -79,6 +91,23 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
         .finally(() => setNewsLoading(false))
     })
   }, [])
+
+  // Mark section opened + fetch streak
+  useEffect(() => {
+    fetch('/api/learning-activity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ opened: true }) }).catch(() => {})
+    fetch('/api/learning-activity').then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return
+      setStreak(d.streak || 0)
+      setBestStreak(d.best || 0)
+      setWeekDone(d.week || [false,false,false,false,false,false,false])
+    }).catch(() => {})
+  }, [])
+
+  function handleNewsClick(url) {
+    if (!url) return
+    fetch('/api/learning-activity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clicked: true }) }).catch(() => {})
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 
   const filters = ['All', ...new Set(allNews.map(n => n.tag))]
   const news = activeFilter === 'All'
@@ -142,14 +171,9 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
                   <div className="e-nmeta">
                     <span className="e-nsrc">{n.src}</span>
                     {n.url ? (
-                      <a
-                        className="e-btn-ghost"
-                        href={n.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
+                      <button className="e-btn-ghost" onClick={() => handleNewsClick(n.url)}>
                         know more
-                      </a>
+                      </button>
                     ) : (
                       <span className="e-btn-ghost" style={{ opacity: 0.4 }}>know more</span>
                     )}
@@ -191,24 +215,32 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
               <div className="e-label know">Concept of the day</div>
               {conceptLoading ? (
                 <AISkeleton height={72} />
-              ) : (
-                <>
-                  <div style={{
-                    fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6,
-                    display: '-webkit-box', WebkitBoxOrient: 'vertical',
-                    WebkitLineClamp: conceptExpanded ? 'unset' : 6,
-                    overflow: conceptExpanded ? 'visible' : 'hidden',
-                  }}>
-                    {conceptContent || 'Compounding — The process where a quantity grows exponentially because gains are reinvested, making time your most powerful asset. Applies to money, knowledge, and habits equally.'}
-                  </div>
-                  <button
-                    onClick={() => setConceptExpanded(e => !e)}
-                    style={{ fontSize: 11, color: 'var(--know-col)', background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}
-                  >
-                    {conceptExpanded ? 'show less' : 'know more'}
-                  </button>
-                </>
-              )}
+              ) : (() => {
+                const { name, explanation } = parseConceptContent(conceptContent)
+                const fallbackName = 'Compounding'
+                const fallbackExpl = 'The process where a quantity grows exponentially because gains are reinvested, making time your most powerful asset. Applies to money, knowledge, and habits equally.'
+                return (
+                  <>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>
+                      {name || fallbackName}
+                    </div>
+                    <div style={{
+                      fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6,
+                      display: '-webkit-box', WebkitBoxOrient: 'vertical',
+                      WebkitLineClamp: conceptExpanded ? 'unset' : 6,
+                      overflow: conceptExpanded ? 'visible' : 'hidden',
+                    }}>
+                      {explanation || fallbackExpl}
+                    </div>
+                    <button
+                      onClick={() => setConceptExpanded(e => !e)}
+                      style={{ fontSize: 11, color: 'var(--know-col)', background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      {conceptExpanded ? 'show less' : 'know more'}
+                    </button>
+                  </>
+                )
+              })()}
             </div>
 
             {/* Deep Dive — Pro */}
@@ -228,10 +260,10 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
             <div className="ec grow">
               <div className="e-label know">Learning streak</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <div style={{ fontSize: 28, fontWeight: 600, color: 'var(--know-col)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>4</div>
+                <div style={{ fontSize: 28, fontWeight: 600, color: 'var(--know-col)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{streak}</div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>days in a row</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>Best: 12 days</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>Best: {bestStreak} days</div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
@@ -240,14 +272,14 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
                     <div style={{
                       height: 28,
                       borderRadius: 6,
-                      background: STREAK_DONE[i] ? 'var(--know-col)' : 'var(--input-bg)',
-                      border: `0.5px solid ${STREAK_DONE[i] ? 'var(--know-col)' : 'var(--border)'}`,
+                      background: weekDone[i] ? 'var(--know-col)' : 'var(--input-bg)',
+                      border: `0.5px solid ${weekDone[i] ? 'var(--know-col)' : 'var(--border)'}`,
                       marginBottom: 4,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}>
-                      {STREAK_DONE[i] && <i className="ph-bold ph-check" style={{ fontSize: 10, color: '#fff' }} />}
+                      {weekDone[i] && <i className="ph-bold ph-check" style={{ fontSize: 10, color: '#fff' }} />}
                     </div>
                     <div style={{ fontSize: 9, color: 'var(--text-3)', textTransform: 'uppercase' }}>{d}</div>
                   </div>
