@@ -31,7 +31,7 @@ function todayKey() {
 }
 
 async function fetchFromNewsData(query) {
-  const url = `https://newsdata.io/api/1/news?apikey=${process.env.NEWSDATA_API_KEY}&q=${encodeURIComponent(query)}&language=en&size=5`
+  const url = `https://newsdata.io/api/1/news?apikey=${process.env.NEWSDATA_API_KEY}&q=${encodeURIComponent(query)}&language=en&size=10`
   const res = await fetch(url, { cache: 'no-store' })
   if (!res.ok) throw new Error(`NewsData.io error: ${res.status}`)
   const json = await res.json()

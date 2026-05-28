@@ -3,6 +3,25 @@
 import { useState, useEffect } from 'react'
 import { useAIContent } from '@/hooks/useAIContent'
 import { createClient } from '@/lib/supabase'
+import UpgradeModal from '@/components/ui/UpgradeModal'
+
+const TOPIC_LABELS = {
+  'ai-technology':    'AI & Tech',
+  'business-markets': 'Business',
+  'geopolitics':      'Geopolitics',
+  'health-medicine':  'Health',
+  'science-space':    'Science',
+  'environment':      'Environment',
+  'culture-society':  'Culture',
+  'sports':           'Sports',
+  'law-policy':       'Law & Policy',
+  'psychology':       'Psychology',
+  'philosophy':       'Philosophy',
+  'history':          'History',
+  'economics':        'Economics',
+  'design':           'Design',
+  'finance':          'Finance',
+}
 
 function AISkeleton({ height = 48 }) {
   return (
@@ -17,6 +36,9 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
   const [activeFilter, setActiveFilter] = useState('All')
   const [allNews, setAllNews] = useState([])
   const [newsLoading, setNewsLoading] = useState(true)
+  const [dykExpanded, setDykExpanded] = useState(false)
+  const [conceptExpanded, setConceptExpanded] = useState(false)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
 
   const todayKey   = new Date().toISOString().slice(0, 10)
   const firstTopic = learningTopics[0] || 'general knowledge'
@@ -41,7 +63,7 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
         .then(data => {
           const flat = Object.entries(data.results || {}).flatMap(([topic, arts]) =>
             arts.map(a => ({
-              tag:      a.tag || topic,
+              tag:      TOPIC_LABELS[topic] || topic,
               tagBg:    'var(--know-bg)',
               tagColor: 'var(--know-col)',
               title:    a.title,
@@ -58,10 +80,10 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
     })
   }, [])
 
-  const filters = ['All', ...new Set(allNews.map(n => n.filter))]
+  const filters = ['All', ...new Set(allNews.map(n => n.tag))]
   const news = activeFilter === 'All'
     ? allNews
-    : allNews.filter(n => n.filter === activeFilter)
+    : allNews.filter(n => n.tag === activeFilter)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
@@ -145,9 +167,22 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
               {dykLoading ? (
                 <AISkeleton height={52} />
               ) : (
-                <div style={{ fontSize: 13, color: 'var(--know-col)', lineHeight: 1.7, fontStyle: 'italic' }}>
-                  &ldquo;{dykContent || 'The human brain processes visual information 60,000× faster than text, yet we spend 90% of learning time reading.'}&rdquo;
-                </div>
+                <>
+                  <div style={{
+                    fontSize: 13, color: 'var(--know-col)', lineHeight: 1.7, fontStyle: 'italic',
+                    display: '-webkit-box', WebkitBoxOrient: 'vertical',
+                    WebkitLineClamp: dykExpanded ? 'unset' : 6,
+                    overflow: dykExpanded ? 'visible' : 'hidden',
+                  }}>
+                    &ldquo;{dykContent || 'The human brain processes visual information 60,000× faster than text, yet we spend 90% of learning time reading.'}&rdquo;
+                  </div>
+                  <button
+                    onClick={() => setDykExpanded(e => !e)}
+                    style={{ fontSize: 11, color: 'var(--know-col)', background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}
+                  >
+                    {dykExpanded ? 'show less' : 'know more'}
+                  </button>
+                </>
               )}
             </div>
 
@@ -157,9 +192,22 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
               {conceptLoading ? (
                 <AISkeleton height={72} />
               ) : (
-                <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6 }}>
-                  {conceptContent || 'Compounding — The process where a quantity grows exponentially because gains are reinvested, making time your most powerful asset. Applies to money, knowledge, and habits equally.'}
-                </div>
+                <>
+                  <div style={{
+                    fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6,
+                    display: '-webkit-box', WebkitBoxOrient: 'vertical',
+                    WebkitLineClamp: conceptExpanded ? 'unset' : 6,
+                    overflow: conceptExpanded ? 'visible' : 'hidden',
+                  }}>
+                    {conceptContent || 'Compounding — The process where a quantity grows exponentially because gains are reinvested, making time your most powerful asset. Applies to money, knowledge, and habits equally.'}
+                  </div>
+                  <button
+                    onClick={() => setConceptExpanded(e => !e)}
+                    style={{ fontSize: 11, color: 'var(--know-col)', background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}
+                  >
+                    {conceptExpanded ? 'show less' : 'know more'}
+                  </button>
+                </>
               )}
             </div>
 
@@ -173,7 +221,7 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
               <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 10 }}>
                 Every app competes for your focus through reward loops and social validation. Understanding this changes how you design your own environment...
               </div>
-              <button className="e-btn-accent">Read full deep dive</button>
+              <button className="e-btn-accent" onClick={() => setUpgradeOpen(true)}>Read full deep dive</button>
             </div>
 
             {/* Learning Streak */}
@@ -212,6 +260,7 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
           </div>
         </div>
       </div>
+      <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </div>
   )
 }

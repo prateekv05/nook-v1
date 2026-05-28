@@ -1048,7 +1048,7 @@ textarea.e-input { resize: none; line-height: 1.6; }
   letter-spacing: 0.05em;
 }
 .e-ntitle { font-size: 13px; font-weight: 500; color: var(--text-1); line-height: 1.35; margin-bottom: 3px; }
-.e-nsummary { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-bottom: 4px; }
+.e-nsummary { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .e-nmeta { display: flex; justify-content: space-between; align-items: center; }
 .e-nsrc { font-size: 11px; color: var(--text-3); }
 .e-check {
