@@ -1271,6 +1271,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .s-emoji-btn:active { transform: scale(0.95); }
 .s-emoji-btn.sel { background: var(--accent-bg); border-color: var(--accent); }
 
+/* Method card face transition */
+.method-face-enter { animation: step-enter 0.22s ease both; }
+
 /* Method feedback */
 .method-feedback { background: var(--life-bg); border: 0.5px solid var(--life-bdr); border-radius: 10px; padding: 14px; margin-top: 12px; }
 .method-feedback-title { font-size: 13px; font-weight: 500; color: var(--life-col); margin-bottom: 10px; }

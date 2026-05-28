@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useToast } from '@/hooks/useToast'
 import { isPro } from '@/lib/isPro'
 import CalendarModal from '@/components/ui/CalendarModal'
 import { useAIContent } from '@/hooks/useAIContent'
+import { drawLineChart } from '@/lib/chart-utils'
 
 const CAT_STYLE = {
   home:   { bg: 'var(--life-bg)',  bdr: 'var(--life-bdr)',  col: 'var(--life-col)',  icon: 'ph-house',     label: 'Home'   },
@@ -37,6 +38,13 @@ function yesterdayISO() {
   return d.toISOString().slice(0, 10)
 }
 
+function getWeekStart() {
+  const d = new Date()
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  return new Date(new Date().setDate(diff)).toISOString().slice(0, 10)
+}
+
 export default function LifestyleSection({ onBack }) {
   const supabase = createClient()
   const { showToast: addToast } = useToast()
@@ -46,6 +54,8 @@ export default function LifestyleSection({ onBack }) {
   const [loading, setLoading]   = useState(true)
   const [clFilter, setClFilter] = useState('all')
   const [newTask, setNewTask]   = useState('')
+  const [newTaskCat, setNewTaskCat] = useState('home')
+  const [showCatPicker, setShowCatPicker] = useState(false)
 
   // Journal
   const [journal, setJournal]       = useState('')
@@ -54,6 +64,9 @@ export default function LifestyleSection({ onBack }) {
   const [journalSaving, setJournalSaving] = useState(false)
   const [journalLoading, setJournalLoading] = useState(true)
   const [profile, setProfile]       = useState(null)
+  const [showJournalHistory, setShowJournalHistory]       = useState(false)
+  const [journalHistory, setJournalHistory]               = useState([])
+  const [journalHistoryLoading, setJournalHistoryLoading] = useState(false)
 
   const DOW = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
   const dayOfWeek = DOW[new Date().getDay()]
@@ -65,14 +78,17 @@ export default function LifestyleSection({ onBack }) {
   const [gratLoading, setGratLoading]       = useState(true)
   const [gratSaving, setGratSaving]         = useState(false)
   const [gratSaved, setGratSaved]           = useState(false)
-  const [showHistory, setShowHistory]       = useState(false)
-  const [gratHistory, setGratHistory]       = useState([])
+  const [showHistory, setShowHistory]             = useState(false)
+  const [gratHistory, setGratHistory]             = useState([])
   const [gratHistoryLoading, setGratHistoryLoading] = useState(false)
+  const [gratHistoryLoaded, setGratHistoryLoaded] = useState(false)
 
-  // Stress (1–5 maps to emoji index 0–4)
-  const [stressMorning, setStressMorning]   = useState(null)
-  const [stressEvening, setStressEvening]   = useState(null)
-  const [trackingId, setTrackingId]         = useState(null)
+  // Stress — single check-in per day, any time
+  const [stress, setStress]                       = useState(null)
+  const [stressFlipped, setStressFlipped]         = useState(false)
+  const [stressHistory, setStressHistory]         = useState([])
+  const [stressHistoryLoading, setStressHistoryLoading] = useState(false)
+  const stressChartRef = useRef(null)
 
   // Calendar modal
   const [calOpen, setCalOpen]       = useState(false)
@@ -80,9 +96,44 @@ export default function LifestyleSection({ onBack }) {
   const [calLoading, setCalLoading] = useState(false)
 
   // Method
-  const [doneDays, setDoneDays]     = useState(0)
-  const [stars, setStars]           = useState(3)
-  const [reflection, setReflection] = useState('')
+  const [doneDays, setDoneDays]       = useState(0)
+  const [stars, setStars]             = useState(0)
+  const [reflection, setReflection]   = useState('')
+  const [methodId, setMethodId]       = useState(null)
+  const [methodLoading, setMethodLoading] = useState(true)
+  const [markedToday, setMarkedToday] = useState(false)
+  const [isFlipped, setIsFlipped]     = useState(false)
+  const [methodExpanded, setMethodExpanded] = useState(false)
+
+  // ── Load method of the week ─────────────────────────────────────────────
+  useEffect(() => {
+    async function loadMethod() {
+      setMethodLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setMethodLoading(false); return }
+
+      const { data } = await supabase
+        .from('method_of_week')
+        .select('id, current_day, rating, reflection')
+        .eq('user_id', user.id)
+        .eq('method_slug', 'pomodoro')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (data) {
+        setMethodId(data.id)
+        setDoneDays(data.current_day || 0)
+        setStars(data.rating || 0)
+        setReflection(data.reflection || '')
+      }
+
+      const lastMarked = localStorage.getItem('nook-method-last-marked')
+      setMarkedToday(lastMarked === todayISO())
+      setMethodLoading(false)
+    }
+    loadMethod()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Load + carry-forward ────────────────────────────────────────────────
   const loadChecklist = useCallback(async () => {
@@ -226,6 +277,28 @@ export default function LifestyleSection({ onBack }) {
     addToast('Journal saved ✓', 'success')
   }
 
+  // ── Load journal history ────────────────────────────────────────────────
+  async function loadJournalHistory() {
+    if (journalHistory.length) { setShowJournalHistory(h => !h); return }
+    setJournalHistoryLoading(true)
+    setShowJournalHistory(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setJournalHistoryLoading(false); return }
+
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 14)
+
+    const { data } = await supabase
+      .from('journal_entries')
+      .select('date, content, word_count')
+      .eq('user_id', user.id)
+      .gte('date', cutoff.toISOString().slice(0, 10))
+      .order('date', { ascending: false })
+
+    setJournalHistory(data || [])
+    setJournalHistoryLoading(false)
+  }
+
   // ── Load gratitude ─────────────────────────────────────────────────────
   useEffect(() => {
     async function loadGratitude() {
@@ -250,26 +323,22 @@ export default function LifestyleSection({ onBack }) {
     loadGratitude()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Load stress (daily_tracking) ───────────────────────────────────────
+  // ── Load today's stress ────────────────────────────────────────────────
   useEffect(() => {
-    async function loadTracking() {
+    async function loadStress() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
       const { data } = await supabase
         .from('daily_tracking')
-        .select('id, stress_morning, stress_evening')
+        .select('stress_morning')
         .eq('user_id', user.id)
         .eq('date', todayISO())
         .maybeSingle()
 
-      if (data) {
-        setTrackingId(data.id)
-        if (data.stress_morning != null) setStressMorning(data.stress_morning - 1)
-        if (data.stress_evening != null) setStressEvening(data.stress_evening - 1)
-      }
+      if (data?.stress_morning != null) setStress(data.stress_morning - 1)
     }
-    loadTracking()
+    loadStress()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save gratitude ─────────────────────────────────────────────────────
@@ -293,12 +362,14 @@ export default function LifestyleSection({ onBack }) {
     if (error) { addToast("Couldn't save — try again", 'error'); return }
     setGratId(data.id)
     setGratSaved(true)
+    setGratHistoryLoaded(false)
+    setGratHistory([])
     addToast('Gratitude saved ✓', 'success')
   }
 
   // ── Load gratitude history ──────────────────────────────────────────────
   async function loadGratHistory() {
-    if (gratHistory.length) { setShowHistory(h => !h); return }
+    if (gratHistoryLoaded) { setShowHistory(h => !h); return }
     setGratHistoryLoading(true)
     setShowHistory(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -315,28 +386,59 @@ export default function LifestyleSection({ onBack }) {
       .order('date', { ascending: false })
 
     setGratHistory(data || [])
+    setGratHistoryLoaded(true)
     setGratHistoryLoading(false)
   }
 
   // ── Save stress ─────────────────────────────────────────────────────────
-  async function saveStress(field, emojiIdx) {
+  async function tapStress(idx) {
+    setStress(idx)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-
-    const dbValue = emojiIdx + 1 // 0-based emoji → 1-based DB value
     await supabase
       .from('daily_tracking')
       .upsert(
-        { user_id: user.id, date: todayISO(), [field]: dbValue },
+        { user_id: user.id, date: todayISO(), stress_morning: idx + 1 },
         { onConflict: 'user_id,date' }
       )
   }
 
-  function tapStress(field, idx) {
-    if (field === 'stress_morning') setStressMorning(idx)
-    else setStressEvening(idx)
-    saveStress(field, idx)
+  // ── Load stress history + draw chart ──────────────────────────────────
+  async function openStressHistory() {
+    if (stressHistory.length) { setStressFlipped(true); return }
+    setStressHistoryLoading(true)
+    setStressFlipped(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setStressHistoryLoading(false); return }
+
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 13)
+
+    const { data } = await supabase
+      .from('daily_tracking')
+      .select('date, stress_morning')
+      .eq('user_id', user.id)
+      .gte('date', cutoff.toISOString().slice(0, 10))
+      .not('stress_morning', 'is', null)
+      .order('date', { ascending: true })
+
+    setStressHistory(data || [])
+    setStressHistoryLoading(false)
   }
+
+  // ── Draw stress chart when history panel is visible ────────────────────
+  useEffect(() => {
+    if (!stressFlipped || stressHistoryLoading || !stressHistory.length) return
+    const canvas = stressChartRef.current
+    if (!canvas) return
+    const labels = stressHistory.map(r => {
+      const d = new Date(r.date + 'T12:00:00')
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    })
+    const values = stressHistory.map(r => r.stress_morning)
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--life-col').trim() || '#A05C20'
+    drawLineChart(canvas, labels, [{ color: accentColor, data: values }], { yMax: 5 })
+  }, [stressFlipped, stressHistoryLoading, stressHistory])
 
   // ── Open calendar history modal ────────────────────────────────────────
   async function openCalendar() {
@@ -356,6 +458,72 @@ export default function LifestyleSection({ onBack }) {
     setCalLoading(false)
   }
 
+  // ── Mark method day done (once per day) ────────────────────────────────
+  async function markMethodDone() {
+    if (markedToday || doneDays >= METHOD_DAYS) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const nextDay = doneDays + 1
+    setDoneDays(nextDay)
+    setMarkedToday(true)
+    localStorage.setItem('nook-method-last-marked', todayISO())
+
+    try {
+      if (methodId) {
+        await supabase
+          .from('method_of_week')
+          .update({ current_day: nextDay, is_completed: nextDay >= METHOD_DAYS })
+          .eq('id', methodId)
+      } else {
+        const { data } = await supabase
+          .from('method_of_week')
+          .insert({
+            user_id: user.id,
+            method_name: 'Pomodoro Technique',
+            method_slug: 'pomodoro',
+            week_start: getWeekStart(),
+            current_day: nextDay,
+            is_completed: nextDay >= METHOD_DAYS,
+          })
+          .select('id')
+          .single()
+        if (data) setMethodId(data.id)
+      }
+    } catch {
+      addToast("Couldn't save progress — try again", 'error')
+    }
+  }
+
+  // ── Save method feedback (stars + reflection) ───────────────────────────
+  async function saveMethodFeedback(newStars, newReflection) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    if (methodId) {
+      await supabase
+        .from('method_of_week')
+        .update({ rating: newStars, reflection: newReflection })
+        .eq('id', methodId)
+    } else {
+      const { data } = await supabase
+        .from('method_of_week')
+        .insert({
+          user_id: user.id,
+          method_name: 'Pomodoro Technique',
+          method_slug: 'pomodoro',
+          week_start: getWeekStart(),
+          current_day: 0,
+          is_completed: false,
+          rating: newStars,
+          reflection: newReflection,
+        })
+        .select('id')
+        .single()
+      if (data) setMethodId(data.id)
+    }
+  }
+
   // ── Tick / Untick ───────────────────────────────────────────────────────
   async function toggle(id) {
     const item = items.find(i => i.id === id)
@@ -365,15 +533,40 @@ export default function LifestyleSection({ onBack }) {
     // Optimistic
     setItems(prev => prev.map(i => i.id === id ? { ...i, done: next } : i))
 
+    const { data: { user } } = await supabase.auth.getUser()
+
     const { error } = await supabase
       .from('checklist_items')
       .update({ is_done: next, completed_at: next ? new Date().toISOString() : null })
       .eq('id', id)
 
     if (error) {
-      // Revert
       setItems(prev => prev.map(i => i.id === id ? { ...i, done: item.done } : i))
       addToast("Couldn't save — try again", 'error')
+      return
+    }
+
+    // Write to history so the calendar view reflects ticked tasks
+    if (user) {
+      const today = todayISO()
+      const { data: existing } = await supabase
+        .from('checklist_history')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('item_id', id)
+        .eq('date', today)
+        .maybeSingle()
+
+      if (existing) {
+        await supabase
+          .from('checklist_history')
+          .update({ is_done: next, item_text: item.text })
+          .eq('id', existing.id)
+      } else {
+        await supabase
+          .from('checklist_history')
+          .insert({ user_id: user.id, item_id: id, item_text: item.text, is_done: next, date: today })
+      }
     }
   }
 
@@ -389,15 +582,16 @@ export default function LifestyleSection({ onBack }) {
     const optimisticId = `opt-${Date.now()}`
 
     // Optimistic
-    setItems(prev => [...prev, { id: optimisticId, text, cat: 'home', done: false, carry_forward: true, position: maxPos + 1 }])
+    setItems(prev => [...prev, { id: optimisticId, text, cat: newTaskCat, done: false, carry_forward: true, position: maxPos + 1 }])
     setNewTask('')
+    setShowCatPicker(false)
 
     const { data, error } = await supabase
       .from('checklist_items')
       .insert({
         user_id: user.id,
         text,
-        category: 'home',
+        category: newTaskCat,
         is_done: false,
         carry_forward: true,
         position: maxPos + 1,
@@ -462,45 +656,122 @@ export default function LifestyleSection({ onBack }) {
           <div className="ecol">
 
             {/* Method of the Week */}
-            <div className="ec ta">
-              <div className="e-label life">Method of the week</div>
-              <div style={{ fontSize: 22, fontWeight: 500, color: 'var(--life-col)', marginBottom: 6, fontFamily: 'var(--font-serif)' }}>
-                Pomodoro Technique — Day {doneDays} of {METHOD_DAYS}
+            <div className="ec ta" style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div className="e-label life" style={{ marginBottom: 0 }}>Method of the week</div>
+                <button
+                  onClick={() => setIsFlipped(f => !f)}
+                  style={{ background: 'none', border: '0.5px solid var(--life-bdr)', borderRadius: 7, padding: '5px 9px', cursor: 'pointer', color: 'var(--life-col)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', fontFamily: 'var(--font-sans)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--life-bg)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  title={isFlipped ? 'Show progress' : 'Learn more'}
+                >
+                  <i className={`ph-bold ph-${isFlipped ? 'arrow-u-up-left' : 'cards'}`} />
+                  {isFlipped ? 'Back' : 'Details'}
+                </button>
               </div>
-              <div style={{ fontSize: 13, color: 'var(--life-col)', opacity: 0.85, lineHeight: 1.65, marginBottom: 14 }}>
-                &ldquo;Work in focused 25-min sprints — then rest. Protect your energy, not just your time.&rdquo;
-              </div>
-              <div className="e-mday-row">
-                {Array.from({ length: METHOD_DAYS }, (_, i) => (
-                  <div key={i} className={`e-mday${i < doneDays ? ' done' : ''}`} />
-                ))}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--life-col)', opacity: 0.7, marginTop: 6 }}>
-                Day {doneDays} of {METHOD_DAYS} — {METHOD_DAYS - doneDays} days remaining
-              </div>
-              <button
-                className="e-btn-g"
-                style={{ marginTop: 12, width: '100%' }}
-                onClick={() => setDoneDays(d => Math.min(d + 1, METHOD_DAYS))}
-                disabled={doneDays >= METHOD_DAYS}
-              >
-                {doneDays >= METHOD_DAYS ? 'All days complete!' : 'Mark today done'}
-              </button>
 
-              <div className="method-feedback">
-                <div className="method-feedback-title">How&rsquo;s it going?</div>
-                <div className="star-row">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <span key={n} className={`star-btn${n <= stars ? ' active' : ''}`} onClick={() => setStars(n)}>★</span>
-                  ))}
+              {/* Front face */}
+              {!isFlipped && (
+                <div className="method-face-enter">
+                  <div style={{ fontSize: 20, fontWeight: 500, color: 'var(--life-col)', marginBottom: 6, fontFamily: 'var(--font-serif)' }}>
+                    Pomodoro Technique — Day {doneDays} of {METHOD_DAYS}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--life-col)', opacity: 0.85, lineHeight: 1.65, marginBottom: 14 }}>
+                    &ldquo;Work in focused 25-min sprints — then rest. Protect your energy, not just your time.&rdquo;
+                  </div>
+                  {methodLoading ? (
+                    <div style={{ height: 5, borderRadius: 4, background: 'var(--life-bdr)', marginBottom: 14, animation: 'shimmer 1.4s infinite linear', backgroundSize: '400px 100%', backgroundImage: 'linear-gradient(90deg, var(--life-bdr) 0%, var(--life-bg) 50%, var(--life-bdr) 100%)' }} />
+                  ) : (
+                    <>
+                      <div className="e-mday-row">
+                        {Array.from({ length: METHOD_DAYS }, (_, i) => (
+                          <div key={i} className={`e-mday${i < doneDays ? ' done' : ''}`} />
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--life-col)', opacity: 0.7, marginTop: 6 }}>
+                        Day {doneDays} of {METHOD_DAYS} — {METHOD_DAYS - doneDays} days remaining
+                      </div>
+                    </>
+                  )}
+                  <button
+                    className="e-btn-g"
+                    style={{ marginTop: 12, width: '100%' }}
+                    onClick={markMethodDone}
+                    disabled={doneDays >= METHOD_DAYS || markedToday || methodLoading}
+                  >
+                    {doneDays >= METHOD_DAYS ? 'All days complete!' : markedToday ? 'Already marked today ✓' : 'Mark today done'}
+                  </button>
+
+                  <div className="method-feedback">
+                    <div className="method-feedback-title">How&rsquo;s it going?</div>
+                    <div className="star-row">
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <span
+                          key={n}
+                          className={`star-btn${n <= stars ? ' active' : ''}`}
+                          onClick={() => {
+                            setStars(n)
+                            saveMethodFeedback(n, reflection)
+                          }}
+                        >★</span>
+                      ))}
+                    </div>
+                    <textarea
+                      rows={2}
+                      placeholder="Any notes on your progress..."
+                      value={reflection}
+                      onChange={e => setReflection(e.target.value)}
+                      onBlur={() => saveMethodFeedback(stars, reflection)}
+                    />
+                  </div>
                 </div>
-                <textarea
-                  rows={2}
-                  placeholder="Any notes on your progress..."
-                  value={reflection}
-                  onChange={e => setReflection(e.target.value)}
-                />
-              </div>
+              )}
+
+              {/* Back face — technique details */}
+              {isFlipped && (
+                <div className="method-face-enter">
+                  <div style={{ fontSize: 18, fontWeight: 500, color: 'var(--life-col)', marginBottom: 8, fontFamily: 'var(--font-serif)' }}>
+                    About the Pomodoro Technique
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 14 }}>
+                    Developed by Francesco Cirillo in the late 1980s, Pomodoro breaks work into 25-minute focused intervals separated by short breaks. The name comes from the tomato-shaped timer he used as a student.
+                  </div>
+
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--life-col)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>How to practice</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                    {[
+                      { step: '1', text: 'Choose one task to focus on completely.' },
+                      { step: '2', text: 'Set a timer for 25 minutes — your Pomodoro.' },
+                      { step: '3', text: 'Work with full focus until the timer rings. No switching.' },
+                      { step: '4', text: 'Take a 5-minute break. Move, breathe, rest your eyes.' },
+                      { step: '5', text: 'After 4 Pomodoros, take a longer 20–30 min break.' },
+                    ].map(({ step, text }) => (
+                      <div key={step} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--life-bg)', border: '0.5px solid var(--life-bdr)', color: 'var(--life-col)', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{step}</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>{text}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {methodExpanded && (
+                    <div style={{ background: 'var(--life-bg)', border: '0.5px solid var(--life-bdr)', borderRadius: 10, padding: '12px 14px', marginBottom: 12, animation: 'step-enter 0.25s ease' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--life-col)', marginBottom: 6 }}>Why it works</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.7 }}>
+                        The Pomodoro Technique leverages timeboxing and the Zeigarnik effect — our brain&apos;s tendency to remember unfinished tasks. Knowing there&apos;s a defined end creates urgency without anxiety. The mandatory breaks prevent cognitive fatigue, making sustained deep work possible over a full day.
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    className="e-btn-outline"
+                    style={{ width: '100%' }}
+                    onClick={() => setMethodExpanded(e => !e)}
+                  >
+                    {methodExpanded ? 'Show less' : 'Why it works →'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Journal */}
@@ -537,6 +808,9 @@ export default function LifestyleSection({ onBack }) {
                   <div className="journal-submitted" style={{ display: 'block', whiteSpace: 'pre-wrap' }}>{journal}</div>
                   <div className="journal-btn-row">
                     <button className="e-btn-outline" onClick={() => setSubmitted(false)}>Edit</button>
+                    <button className="e-btn-outline" onClick={loadJournalHistory}>
+                      {showJournalHistory ? 'History ↑' : 'History →'}
+                    </button>
                   </div>
                 </>
               ) : (
@@ -556,8 +830,34 @@ export default function LifestyleSection({ onBack }) {
                     >
                       {journalSaving ? 'Saving…' : 'Submit'}
                     </button>
+                    <button className="e-btn-outline" onClick={loadJournalHistory}>
+                      {showJournalHistory ? 'History ↑' : 'History →'}
+                    </button>
                   </div>
                 </>
+              )}
+
+              {showJournalHistory && (
+                <div className="grat-history" style={{ display: 'block', marginTop: 12 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 8 }}>Last 14 days</div>
+                  {journalHistoryLoading ? (
+                    <div style={{ height: 60, borderRadius: 10, background: 'var(--input-bg)', backgroundImage: 'linear-gradient(90deg, var(--input-bg) 0%, var(--border) 50%, var(--input-bg) 100%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite linear' }} />
+                  ) : journalHistory.length === 0 ? (
+                    <div style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center', padding: '12px 0' }}>No past entries yet</div>
+                  ) : (
+                    journalHistory.map(entry => (
+                      <div key={entry.date} className="grat-day">
+                        <div className="grat-date" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>{formatHistoryDate(entry.date)}</span>
+                          {entry.word_count > 0 && (
+                            <span style={{ fontSize: 10, color: 'var(--text-3)', fontVariantNumeric: 'tabular-nums' }}>{entry.word_count}w</span>
+                          )}
+                        </div>
+                        <div className="grat-item" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{entry.content}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -661,8 +961,8 @@ export default function LifestyleSection({ onBack }) {
               })}
 
               {/* Add task */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
-                <div className="e-add" style={{ flex: 1, marginTop: 0 }}>
+              <div style={{ marginTop: 10 }}>
+                <div className="e-add" style={{ marginTop: 0 }}>
                   <input
                     className="e-input"
                     placeholder="Add a task..."
@@ -673,49 +973,98 @@ export default function LifestyleSection({ onBack }) {
                   />
                   <button className="e-btn-g" onClick={addTask}>Add</button>
                 </div>
-                <button style={{ fontSize: 11, padding: '3px 10px', borderRadius: 7, border: '0.5px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
-                  + Category
-                </button>
+                <div style={{ marginTop: 6, position: 'relative' }}>
+                  <button
+                    onClick={() => setShowCatPicker(p => !p)}
+                    style={{ fontSize: 11, padding: '3px 10px', borderRadius: 7, border: `0.5px solid ${CAT_STYLE[newTaskCat].bdr}`, background: CAT_STYLE[newTaskCat].bg, color: CAT_STYLE[newTaskCat].col, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.2s' }}
+                  >
+                    <i className={`ph-bold ${CAT_STYLE[newTaskCat].icon}`} />
+                    {CAT_STYLE[newTaskCat].label}
+                    <i className={`ph-bold ph-caret-${showCatPicker ? 'up' : 'down'}`} style={{ fontSize: 9 }} />
+                  </button>
+                  {showCatPicker && (
+                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: 'var(--card-bg)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 6, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 'var(--z-sticky)', boxShadow: 'var(--card-sh)', minWidth: 120 }}>
+                      {Object.entries(CAT_STYLE).map(([key, s]) => (
+                        <button
+                          key={key}
+                          onClick={() => { setNewTaskCat(key); setShowCatPicker(false) }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 7, border: 'none', background: newTaskCat === key ? s.bg : 'transparent', color: s.col, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12, textAlign: 'left', transition: 'background 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = s.bg}
+                          onMouseLeave={e => { if (newTaskCat !== key) e.currentTarget.style.background = 'transparent' }}
+                        >
+                          <i className={`ph-bold ${s.icon}`} /> {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Stress check-in */}
             <div className="ec">
-              <div className="e-label life">Stress check-in</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div className="e-label life" style={{ marginBottom: 0 }}>Stress check-in</div>
+                <button
+                  onClick={() => stressFlipped ? setStressFlipped(false) : openStressHistory()}
+                  style={{ background: 'none', border: '0.5px solid var(--life-bdr)', borderRadius: 7, padding: '5px 9px', cursor: 'pointer', color: 'var(--life-col)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.2s', fontFamily: 'var(--font-sans)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--life-bg)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  title={stressFlipped ? 'Back to check-in' : 'View history'}
+                >
+                  <i className={`ph-bold ph-${stressFlipped ? 'arrow-u-up-left' : 'chart-line'}`} />
+                  {stressFlipped ? 'Back' : 'History'}
+                </button>
+              </div>
 
-              <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>Morning</div>
-                <div className="stress-row" style={{ justifyContent: 'flex-start', gap: 8 }}>
-                  {EMOJIS.map((emoji, i) => (
-                    <button
-                      key={i}
-                      className={`s-emoji-btn${stressMorning === i ? ' sel' : ''}`}
-                      onClick={() => tapStress('stress_morning', i)}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+              {!stressFlipped ? (
+                <div className="method-face-enter">
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 10 }}>
+                    How are you feeling right now?
+                  </div>
+                  <div className="stress-row" style={{ justifyContent: 'space-between', gap: 6 }}>
+                    {EMOJIS.map((emoji, i) => (
+                      <button
+                        key={i}
+                        className={`s-emoji-btn${stress === i ? ' sel' : ''}`}
+                        onClick={() => tapStress(i)}
+                        style={{ flex: 1 }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 4px 0', marginTop: 2 }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Calm</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Stressed</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 10 }}>
+                    {stress !== null ? 'Saved automatically.' : 'Tap to check in — saves instantly.'}
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>Evening</div>
-                <div className="stress-row" style={{ justifyContent: 'flex-start', gap: 8 }}>
-                  {EMOJIS.map((emoji, i) => (
-                    <button
-                      key={i}
-                      className={`s-emoji-btn${stressEvening === i ? ' sel' : ''}`}
-                      onClick={() => tapStress('stress_evening', i)}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+              ) : (
+                <div className="method-face-enter">
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 10 }}>
+                    Last 14 days — stress level (1 = calm, 5 = stressed)
+                  </div>
+                  {stressHistoryLoading ? (
+                    <div style={{ height: 110, borderRadius: 10, background: 'var(--input-bg)', backgroundImage: 'linear-gradient(90deg, var(--input-bg) 0%, var(--border) 50%, var(--input-bg) 100%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite linear' }} />
+                  ) : stressHistory.length === 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '24px 0' }}>
+                      <i className="ph-bold ph-chart-line" style={{ fontSize: 22, color: 'var(--text-3)' }} />
+                      <div style={{ fontSize: 13, color: 'var(--text-2)', textAlign: 'center' }}>
+                        No history yet — check in a few days to see your trend.
+                      </div>
+                    </div>
+                  ) : (
+                    <canvas
+                      ref={stressChartRef}
+                      style={{ width: '100%', height: 110, display: 'block' }}
+                      height={110}
+                    />
+                  )}
                 </div>
-              </div>
-
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 10 }}>
-                {(stressMorning !== null || stressEvening !== null) ? 'Saved automatically.' : 'Tap to check in — saves instantly.'}
-              </div>
+              )}
             </div>
 
             {/* Gratitude log */}
