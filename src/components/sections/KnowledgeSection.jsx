@@ -74,7 +74,7 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => {
           const flat = Object.entries(data.results || {}).flatMap(([topic, arts]) =>
-            arts.map(a => ({
+            arts.slice(0, 5).map(a => ({
               tag:      TOPIC_LABELS[topic] || topic,
               tagBg:    'var(--know-bg)',
               tagColor: 'var(--know-col)',

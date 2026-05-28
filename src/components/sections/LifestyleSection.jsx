@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase'
 import { useToast } from '@/hooks/useToast'
 import { isPro } from '@/lib/isPro'
 import CalendarModal from '@/components/ui/CalendarModal'
+import JournalHistoryModal from '@/components/ui/JournalHistoryModal'
 import { useAIContent } from '@/hooks/useAIContent'
 import { drawLineChart } from '@/lib/chart-utils'
 
@@ -69,15 +70,15 @@ export default function LifestyleSection({ onBack }) {
   const [showNewCatInput, setShowNewCatInput] = useState(false)
 
   // Journal
-  const [journal, setJournal]       = useState('')
-  const [journalId, setJournalId]   = useState(null)
-  const [submitted, setSubmitted]   = useState(false)
+  const [journal, setJournal]             = useState('')
   const [journalSaving, setJournalSaving] = useState(false)
   const [journalLoading, setJournalLoading] = useState(true)
-  const [profile, setProfile]       = useState(null)
-  const [showJournalHistory, setShowJournalHistory]       = useState(false)
-  const [journalHistory, setJournalHistory]               = useState([])
-  const [journalHistoryLoading, setJournalHistoryLoading] = useState(false)
+  const [todayEntryCount, setTodayEntryCount] = useState(0)
+  const [profile, setProfile]             = useState(null)
+  const [showJournalModal, setShowJournalModal]           = useState(false)
+  const [journalEntries, setJournalEntries]               = useState([])
+  const [journalEntriesLoading, setJournalEntriesLoading] = useState(false)
+  const [journalEntriesLoaded, setJournalEntriesLoaded]   = useState(false)
 
   const DOW = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
   const dayOfWeek = DOW[new Date().getDay()]
@@ -263,13 +264,12 @@ export default function LifestyleSection({ onBack }) {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setJournalLoading(false); return }
 
-      const [{ data: entry }, { data: prof }] = await Promise.all([
+      const [{ count }, { data: prof }] = await Promise.all([
         supabase
           .from('journal_entries')
-          .select('id, content')
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .eq('date', todayISO())
-          .maybeSingle(),
+          .eq('date', todayISO()),
         supabase
           .from('profiles')
           .select('is_pro, pro_trial_ends_at')
@@ -277,18 +277,14 @@ export default function LifestyleSection({ onBack }) {
           .single(),
       ])
 
-      if (entry) {
-        setJournal(entry.content)
-        setJournalId(entry.id)
-        setSubmitted(true)
-      }
+      setTodayEntryCount(count || 0)
       setProfile(prof)
       setJournalLoading(false)
     }
     loadJournal()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Submit journal ──────────────────────────────────────────────────────
+  // ── Submit journal (insert — multiple entries per day allowed) ─────────
   async function submitJournal() {
     const text = journal.trim()
     if (!text) return
@@ -297,45 +293,64 @@ export default function LifestyleSection({ onBack }) {
     if (!user) { setJournalSaving(false); return }
 
     const wordCount = text.split(/\s+/).filter(Boolean).length
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('journal_entries')
-      .upsert(
-        { user_id: user.id, content: text, word_count: wordCount, date: todayISO() },
-        { onConflict: 'user_id,date' }
-      )
-      .select('id')
-      .single()
+      .insert({ user_id: user.id, content: text, word_count: wordCount, date: todayISO() })
 
     setJournalSaving(false)
     if (error) {
       addToast("Couldn't save journal — try again", 'error')
       return
     }
-    setJournalId(data.id)
-    setSubmitted(true)
-    addToast('Journal saved ✓', 'success')
+    setJournal('')
+    setTodayEntryCount(c => c + 1)
+    setJournalEntriesLoaded(false) // invalidate cached list
+    addToast('Journal entry saved ✓', 'success')
   }
 
-  // ── Load journal history ────────────────────────────────────────────────
+  // ── Open journal history modal ──────────────────────────────────────────
   async function loadJournalHistory() {
-    if (journalHistory.length) { setShowJournalHistory(h => !h); return }
-    setJournalHistoryLoading(true)
-    setShowJournalHistory(true)
+    setShowJournalModal(true)
+    if (journalEntriesLoaded) return
+    setJournalEntriesLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setJournalHistoryLoading(false); return }
-
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - 14)
+    if (!user) { setJournalEntriesLoading(false); return }
 
     const { data } = await supabase
       .from('journal_entries')
-      .select('date, content, word_count')
+      .select('id, date, content, word_count, created_at')
       .eq('user_id', user.id)
-      .gte('date', cutoff.toISOString().slice(0, 10))
-      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
 
-    setJournalHistory(data || [])
-    setJournalHistoryLoading(false)
+    setJournalEntries(data || [])
+    setJournalEntriesLoaded(true)
+    setJournalEntriesLoading(false)
+  }
+
+  // ── Edit journal entry ─────────────────────────────────────────────────
+  async function editJournalEntry(id, content) {
+    const wordCount = content.split(/\s+/).filter(Boolean).length
+    const { error } = await supabase
+      .from('journal_entries')
+      .update({ content, word_count: wordCount })
+      .eq('id', id)
+
+    if (error) { addToast("Couldn't update entry — try again", 'error'); return }
+    setJournalEntries(prev => prev.map(e => e.id === id ? { ...e, content, word_count: wordCount } : e))
+    addToast('Entry updated ✓', 'success')
+  }
+
+  // ── Delete journal entry ───────────────────────────────────────────────
+  async function deleteJournalEntry(id) {
+    const { error } = await supabase
+      .from('journal_entries')
+      .delete()
+      .eq('id', id)
+
+    if (error) { addToast("Couldn't delete entry — try again", 'error'); return }
+    setJournalEntries(prev => prev.filter(e => e.id !== id))
+    setTodayEntryCount(prev => Math.max(0, prev - 1))
+    addToast('Entry deleted', 'success')
   }
 
   // ── Load gratitude ─────────────────────────────────────────────────────
@@ -841,7 +856,14 @@ export default function LifestyleSection({ onBack }) {
 
             {/* Journal */}
             <div className="ec">
-              <div className="e-label life">Journal</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div className="e-label life" style={{ marginBottom: 0 }}>Journal</div>
+                {!journalLoading && todayEntryCount > 0 && (
+                  <span style={{ fontSize: 11, color: 'var(--know-col)', background: 'var(--know-bg)', border: '0.5px solid var(--know-bdr)', borderRadius: 20, padding: '2px 9px', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                    {todayEntryCount} {todayEntryCount === 1 ? 'entry' : 'entries'} today
+                  </span>
+                )}
+              </div>
 
               {/* AI prompt */}
               <div style={{ fontSize: 11, color: 'var(--text-3)', margin: '0 0 6px' }}>AI prompt for today</div>
@@ -863,21 +885,8 @@ export default function LifestyleSection({ onBack }) {
                 </div>
               )}
 
-              {/* Skeleton while loading today's entry */}
               {journalLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ height: 96, borderRadius: 10, background: 'var(--input-bg)', backgroundImage: 'linear-gradient(90deg, var(--input-bg) 0%, var(--border) 50%, var(--input-bg) 100%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite linear' }} />
-                </div>
-              ) : submitted ? (
-                <>
-                  <div className="journal-submitted" style={{ display: 'block', whiteSpace: 'pre-wrap' }}>{journal}</div>
-                  <div className="journal-btn-row">
-                    <button className="e-btn-outline" onClick={() => setSubmitted(false)}>Edit</button>
-                    <button className="e-btn-outline" onClick={loadJournalHistory}>
-                      {showJournalHistory ? 'History ↑' : 'History →'}
-                    </button>
-                  </div>
-                </>
+                <div style={{ height: 96, borderRadius: 10, background: 'var(--input-bg)', backgroundImage: 'linear-gradient(90deg, var(--input-bg) 0%, var(--border) 50%, var(--input-bg) 100%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite linear' }} />
               ) : (
                 <>
                   <textarea
@@ -893,36 +902,13 @@ export default function LifestyleSection({ onBack }) {
                       onClick={submitJournal}
                       disabled={journalSaving || !journal.trim()}
                     >
-                      {journalSaving ? 'Saving…' : 'Submit'}
+                      {journalSaving ? 'Saving…' : 'Add entry'}
                     </button>
                     <button className="e-btn-outline" onClick={loadJournalHistory}>
-                      {showJournalHistory ? 'History ↑' : 'History →'}
+                      History →
                     </button>
                   </div>
                 </>
-              )}
-
-              {showJournalHistory && (
-                <div className="grat-history" style={{ display: 'block', marginTop: 12 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 8 }}>Last 14 days</div>
-                  {journalHistoryLoading ? (
-                    <div style={{ height: 60, borderRadius: 10, background: 'var(--input-bg)', backgroundImage: 'linear-gradient(90deg, var(--input-bg) 0%, var(--border) 50%, var(--input-bg) 100%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s infinite linear' }} />
-                  ) : journalHistory.length === 0 ? (
-                    <div style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center', padding: '12px 0' }}>No past entries yet</div>
-                  ) : (
-                    journalHistory.map(entry => (
-                      <div key={entry.date} className="grat-day">
-                        <div className="grat-date" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>{formatHistoryDate(entry.date)}</span>
-                          {entry.word_count > 0 && (
-                            <span style={{ fontSize: 10, color: 'var(--text-3)', fontVariantNumeric: 'tabular-nums' }}>{entry.word_count}w</span>
-                          )}
-                        </div>
-                        <div className="grat-item" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{entry.content}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
               )}
             </div>
           </div>
@@ -1233,6 +1219,15 @@ export default function LifestyleSection({ onBack }) {
           onClose={() => setCalOpen(false)}
           days={calDays}
           loading={calLoading}
+        />
+
+        <JournalHistoryModal
+          isOpen={showJournalModal}
+          onClose={() => setShowJournalModal(false)}
+          entries={journalEntries}
+          loading={journalEntriesLoading}
+          onEdit={editJournalEntry}
+          onDelete={deleteJournalEntry}
         />
 
         {/* Positivity strip */}
