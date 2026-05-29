@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAIContent } from '@/hooks/useAIContent'
 import { createClient } from '@/lib/supabase'
 import UpgradeModal from '@/components/ui/UpgradeModal'
+import Link from 'next/link'
 
 const TOPIC_LABELS = {
   'ai-technology':    'AI & Tech',
@@ -204,8 +205,11 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
                     onClick={() => setDykExpanded(e => !e)}
                     style={{ fontSize: 11, color: 'var(--know-col)', background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}
                   >
-                    {dykExpanded ? 'show less' : 'know more'}
+                    {dykExpanded ? 'show less' : 'show more'}
                   </button>
+                  <Link href="/blog?category=did-you-know" className="know-more-link know-more-know">
+                    Explore on blog <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
+                  </Link>
                 </>
               )}
             </div>
@@ -236,8 +240,11 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
                       onClick={() => setConceptExpanded(e => !e)}
                       style={{ fontSize: 11, color: 'var(--know-col)', background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}
                     >
-                      {conceptExpanded ? 'show less' : 'know more'}
+                      {conceptExpanded ? 'show less' : 'show more'}
                     </button>
+                    <Link href="/blog?category=concept-of-day" className="know-more-link know-more-know">
+                      Explore on blog <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
+                    </Link>
                   </>
                 )
               })()}
@@ -254,6 +261,9 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
                 Every app competes for your focus through reward loops and social validation. Understanding this changes how you design your own environment...
               </div>
               <button className="e-btn-accent" onClick={() => setUpgradeOpen(true)}>Read full deep dive</button>
+              <Link href="/blog?category=deep-dive" className="know-more-link know-more-know" style={{ marginTop: 4 }}>
+                Know more <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
+              </Link>
             </div>
 
             {/* Learning Streak */}
