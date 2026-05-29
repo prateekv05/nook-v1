@@ -839,22 +839,6 @@ export default function LifestyleSection({ onBack }) {
                     ))}
                   </div>
 
-                  {methodExpanded && (
-                    <div style={{ background: 'var(--life-bg)', border: '0.5px solid var(--life-bdr)', borderRadius: 10, padding: '12px 14px', marginBottom: 12, animation: 'step-enter 0.25s ease' }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--life-col)', marginBottom: 6 }}>Why it works</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.7 }}>
-                        The Pomodoro Technique leverages timeboxing and the Zeigarnik effect — our brain&apos;s tendency to remember unfinished tasks. Knowing there&apos;s a defined end creates urgency without anxiety. The mandatory breaks prevent cognitive fatigue, making sustained deep work possible over a full day.
-                      </div>
-                    </div>
-                  )}
-
-                  <button
-                    className="e-btn-outline"
-                    style={{ width: '100%' }}
-                    onClick={() => setMethodExpanded(e => !e)}
-                  >
-                    {methodExpanded ? 'Show less' : 'Why it works →'}
-                  </button>
                 </div>
               )}
             </div>

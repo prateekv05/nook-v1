@@ -196,19 +196,13 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
                   <div style={{
                     fontSize: 13, color: 'var(--know-col)', lineHeight: 1.7, fontStyle: 'italic',
                     display: '-webkit-box', WebkitBoxOrient: 'vertical',
-                    WebkitLineClamp: dykExpanded ? 'unset' : 6,
-                    overflow: dykExpanded ? 'visible' : 'hidden',
+                    WebkitLineClamp: 6,
+                    overflow: 'hidden',
                   }}>
                     &ldquo;{dykContent || 'The human brain processes visual information 60,000× faster than text, yet we spend 90% of learning time reading.'}&rdquo;
                   </div>
-                  <button
-                    onClick={() => setDykExpanded(e => !e)}
-                    style={{ fontSize: 11, color: 'var(--know-col)', background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}
-                  >
-                    {dykExpanded ? 'show less' : 'show more'}
-                  </button>
                   <Link href="/blog?category=did-you-know" className="know-more-link know-more-know">
-                    Explore on blog <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
+                    Know more <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
                   </Link>
                 </>
               )}
@@ -231,19 +225,13 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
                     <div style={{
                       fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6,
                       display: '-webkit-box', WebkitBoxOrient: 'vertical',
-                      WebkitLineClamp: conceptExpanded ? 'unset' : 6,
-                      overflow: conceptExpanded ? 'visible' : 'hidden',
+                      WebkitLineClamp: 6,
+                      overflow: 'hidden',
                     }}>
                       {explanation || fallbackExpl}
                     </div>
-                    <button
-                      onClick={() => setConceptExpanded(e => !e)}
-                      style={{ fontSize: 11, color: 'var(--know-col)', background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}
-                    >
-                      {conceptExpanded ? 'show less' : 'show more'}
-                    </button>
                     <Link href="/blog?category=concept-of-day" className="know-more-link know-more-know">
-                      Explore on blog <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
+                      Know more <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
                     </Link>
                   </>
                 )
