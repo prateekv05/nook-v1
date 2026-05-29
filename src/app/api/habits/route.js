@@ -91,3 +91,86 @@ export async function GET() {
 
   return NextResponse.json({ habits, completions, streaks, weekStart, weekEnd })
 }
+
+export async function POST(request) {
+  const supabase = await createSupabaseServerClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { name, color, contributes_to_score } = await request.json()
+  if (!name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 })
+
+  const { count } = await supabase
+    .from('habits')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', session.user.id)
+    .eq('is_active', true)
+
+  if (count >= 10) return NextResponse.json({ error: 'Maximum 10 habits reached' }, { status: 400 })
+
+  const { data: existing } = await supabase
+    .from('habits')
+    .select('position')
+    .eq('user_id', session.user.id)
+    .eq('is_active', true)
+    .order('position', { ascending: false })
+    .limit(1)
+
+  const position = existing?.length ? existing[0].position + 1 : 0
+
+  const { data, error } = await supabase
+    .from('habits')
+    .insert({ user_id: session.user.id, name: name.trim(), color: color || '#C2623F', contributes_to_score: !!contributes_to_score, position })
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ habit: data })
+}
+
+export async function PATCH(request) {
+  const supabase = await createSupabaseServerClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { habit_id, date, done } = await request.json()
+  if (!habit_id || !date) return NextResponse.json({ error: 'habit_id and date required' }, { status: 400 })
+
+  const today = new Date().toISOString().slice(0, 10)
+  if (date !== today) return NextResponse.json({ error: 'Can only toggle today' }, { status: 400 })
+
+  if (done) {
+    const { error } = await supabase
+      .from('habit_completions')
+      .upsert({ user_id: session.user.id, habit_id, date }, { onConflict: 'habit_id,date' })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  } else {
+    const { error } = await supabase
+      .from('habit_completions')
+      .delete()
+      .eq('user_id', session.user.id)
+      .eq('habit_id', habit_id)
+      .eq('date', date)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
+}
+
+export async function DELETE(request) {
+  const supabase = await createSupabaseServerClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { habit_id } = await request.json()
+  if (!habit_id) return NextResponse.json({ error: 'habit_id required' }, { status: 400 })
+
+  const { error } = await supabase
+    .from('habits')
+    .update({ is_active: false })
+    .eq('id', habit_id)
+    .eq('user_id', session.user.id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
