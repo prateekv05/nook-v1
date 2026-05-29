@@ -360,12 +360,15 @@ function AddHabitModal({ isOpen, onClose, onSave }) {
           <div className="add-habit-toggle-label">Contribute to Day Score</div>
           <div className="add-habit-toggle-sub">Affects your daily wellness score</div>
         </div>
-        <button
-          className={`toggle-btn${contributesToScore ? ' on' : ''}`}
-          onClick={() => setContributesToScore(p => !p)}
-          aria-pressed={contributesToScore}
-          aria-label="Toggle contribute to Day Score"
-        />
+        <label className="toggle-sw">
+          <input
+            type="checkbox"
+            checked={contributesToScore}
+            onChange={() => setContributesToScore(p => !p)}
+            aria-label="Toggle contribute to Day Score"
+          />
+          <span className="toggle-slider" />
+        </label>
       </div>
 
       <div className="add-habit-actions">
