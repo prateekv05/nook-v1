@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { id: "knowledge", label: "Knowledge", icon: "ph-book-open",       view: "expanded", section: "knowledge" },
   { id: "lifestyle", label: "Lifestyle", icon: "ph-heart",           view: "expanded", section: "lifestyle" },
   { id: "tracking",  label: "Tracking",  icon: "ph-chart-line-up",   view: "expanded", section: "tracking" },
+  { id: "habits",    label: "Habit Tracker",  icon: "ph-checks",          view: "expanded", section: "habits" },
 ];
 
 const THEMES = [

@@ -9,6 +9,7 @@ import FinanceSection from "../../../components/sections/FinanceSection";
 import KnowledgeSection from "../../../components/sections/KnowledgeSection";
 import LifestyleSection from "../../../components/sections/LifestyleSection";
 import TrackingSection from "../../../components/sections/TrackingSection";
+import HabitTrackerSection from "../../../components/sections/HabitTrackerSection";
 import SettingsView from "../../../components/settings/SettingsView";
 import ShareModal from "../../../components/ui/ShareModal";
 
@@ -17,6 +18,7 @@ const SECTION_MAP = {
   knowledge: KnowledgeSection,
   lifestyle: LifestyleSection,
   tracking:  TrackingSection,
+  habits:    HabitTrackerSection,
 };
 
 export default function DashboardPage() {
