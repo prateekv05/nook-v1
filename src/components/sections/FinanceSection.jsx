@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/useToast'
 import UpgradeModal from '@/components/ui/UpgradeModal'
 import { useAIContent } from '@/hooks/useAIContent'
 import { drawBarChart } from '@/lib/chart-utils'
+import Link from 'next/link'
 
 function parseWOD(text) {
   const word = text?.match(/WORD:\s*(.+)/i)?.[1]?.trim() ?? null
@@ -144,6 +145,9 @@ export default function FinanceSection({ onBack }) {
   const [incomeAmt, setIncomeAmt]         = useState('')
   const [incomeSource, setIncomeSource]   = useState('')
   const [addingIncome, setAddingIncome]   = useState(false)
+
+  const [incomeEntries, setIncomeEntries] = useState([])
+  const [showConfetti, setShowConfetti]   = useState(false)
 
   // Goal setup form (shown when no goal is set)
   const [goalSetupAmt, setGoalSetupAmt]       = useState('')
@@ -360,7 +364,7 @@ export default function FinanceSection({ onBack }) {
     }
   }
 
-  // ── Load income total for the current period ──────────────
+  // ── Load income total + entries for the current period ────
   async function loadIncomeTotal(uid, period) {
     setIncomeLoading(true)
     try {
@@ -377,15 +381,17 @@ export default function FinanceSection({ onBack }) {
 
       const { data, error } = await supabase
         .from('income_entries')
-        .select('amount')
+        .select('id, amount, source, date, created_at')
         .eq('user_id', uid)
         .gte('date', startDate)
         .lt('date', endDate)
+        .order('created_at', { ascending: false })
 
       if (error) throw error
 
       const total = (data || []).reduce((s, r) => s + parseFloat(r.amount), 0)
       setIncomeTotal(total)
+      setIncomeEntries(data || [])
     } catch (err) {
       toast?.error?.('Failed to load income data.')
       console.error('[income total]', err)
@@ -394,30 +400,61 @@ export default function FinanceSection({ onBack }) {
     }
   }
 
+  function fireCelebration(monthLabel) {
+    toast?.success?.(`Goal reached! You crushed your ${monthLabel} goal!`)
+    setShowConfetti(true)
+    setTimeout(() => setShowConfetti(false), 2500)
+  }
+
   // ── Log income entry ───────────────────────────────────────
   async function logIncome() {
     const amt = parseFloat(incomeAmt)
     if (!amt || amt <= 0 || !userId || !incomeGoal) return
     setAddingIncome(true)
 
-    const prevTotal = incomeTotal
-    setIncomeTotal(prev => prev + amt)
+    const prevTotal  = incomeTotal
+    const newTotal   = prevTotal + amt
+    const now        = new Date()
+    const monthLabel = incomeGoal.period === 'Yearly'
+      ? String(now.getFullYear())
+      : now.toLocaleDateString('en-US', { month: 'long' })
+    const srcValue   = incomeSource.trim() || null
+
+    const optimisticEntry = {
+      id:         `opt-${Date.now()}`,
+      amount:     amt,
+      source:     srcValue,
+      date:       now.toISOString().slice(0, 10),
+      created_at: now.toISOString(),
+    }
+
+    setIncomeTotal(newTotal)
+    setIncomeEntries(prev => [optimisticEntry, ...prev])
     setIncomeAmt('')
     setIncomeSource('')
 
+    if (prevTotal < incomeGoal.amount && newTotal >= incomeGoal.amount) {
+      fireCelebration(monthLabel)
+    } else {
+      toast?.success?.(`$${amt.toFixed(2)} income logged`)
+    }
+
     try {
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('income_entries')
         .insert({
           user_id: userId,
           amount:  amt,
-          source:  incomeSource.trim() || null,
-          date:    new Date().toISOString().slice(0, 10),
+          source:  srcValue,
+          date:    now.toISOString().slice(0, 10),
         })
+        .select('id, amount, source, date, created_at')
+        .single()
       if (error) throw error
-      toast?.success?.(`$${amt.toFixed(2)} income logged`)
+      setIncomeEntries(prev => prev.map(e => e.id === optimisticEntry.id ? inserted : e))
     } catch (err) {
       setIncomeTotal(prevTotal)
+      setIncomeEntries(prev => prev.filter(e => e.id !== optimisticEntry.id))
       setIncomeAmt(String(amt))
       toast?.error?.('Failed to log income.')
       console.error('[log income]', err)
@@ -841,7 +878,23 @@ export default function FinanceSection({ onBack }) {
                     : `${pct.toFixed(0)}% reached — ${daysLeft}d left, keep pushing`
 
                   return (
-                    <>
+                    <div style={{ position: 'relative', overflow: 'hidden' }}>
+                      {showConfetti && Array.from({ length: 28 }).map((_, i) => {
+                        const colors = ['#22C55E', '#F59E0B', '#60A5FA', '#A78BFA', '#F87171']
+                        const color  = colors[i % colors.length]
+                        const size   = 4 + (i % 4)
+                        const left   = `${(i * 37) % 95}%`
+                        const delay  = `${(i * 0.07).toFixed(2)}s`
+                        const width  = i % 3 === 0 ? size * 2 : size
+                        return (
+                          <span
+                            key={i}
+                            className="confetti-piece"
+                            style={{ background: color, width, height: size, left, top: 0, animationDelay: delay }}
+                          />
+                        )
+                      })}
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
                         <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{periodLabel}</span>
                         <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>
@@ -851,7 +904,15 @@ export default function FinanceSection({ onBack }) {
                       <div className="e-prog">
                         <div className="e-progb" style={{ width: `${pct}%`, background: barColor, transition: 'width 0.5s var(--ease-spring)' }} />
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6 }}>{statusMsg}</div>
+
+                      {pct >= 100 ? (
+                        <div className="income-goal-reached">
+                          <i className="ph-bold ph-trophy" />
+                          <div className="income-goal-reached-text">You crushed your {periodLabel}!</div>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6 }}>{statusMsg}</div>
+                      )}
 
                       <div className="e-add" style={{ marginTop: 14 }}>
                         <input
@@ -883,7 +944,38 @@ export default function FinanceSection({ onBack }) {
                           {addingIncome ? '…' : 'Log'}
                         </button>
                       </div>
-                    </>
+
+                      {incomeLoading ? (
+                        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {[1, 2, 3].map(i => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '0.5px solid var(--sub-divider)', gap: 8 }}>
+                              <div className="ticker-skel-bar" style={{ width: 48, height: 12 }} />
+                              <div className="ticker-skel-bar" style={{ flex: 1, height: 12 }} />
+                              <div className="ticker-skel-bar" style={{ width: 40, height: 10 }} />
+                            </div>
+                          ))}
+                        </div>
+                      ) : incomeEntries.length === 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 0 4px' }}>
+                          <i className="ph-bold ph-coins" style={{ fontSize: 20, color: 'var(--text-3)' }} />
+                          <div style={{ fontSize: 12, color: 'var(--text-3)' }}>No income logged yet this period.</div>
+                        </div>
+                      ) : (
+                        <div className="income-history">
+                          {incomeEntries.map(entry => {
+                            const d = new Date(entry.date + 'T12:00:00')
+                            const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            return (
+                              <div key={entry.id} className="income-history-row">
+                                <span className="income-hist-amt">+${parseFloat(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className="income-hist-src">{entry.source || '—'}</span>
+                                <span className="income-hist-date">{dateLabel}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
                   )
                 })()
               )}
@@ -908,6 +1000,9 @@ export default function FinanceSection({ onBack }) {
                   <div style={{ fontSize: 13, color: 'var(--fin-col)', opacity: 0.8, lineHeight: 1.7 }}>
                     {wod.def || 'Investing a fixed amount at regular intervals regardless of price — reducing volatility and removing emotion from your investment decisions.'}
                   </div>
+                  <Link href="/blog?category=financial-of-day" className="know-more-link know-more-fin">
+                    Know more <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
+                  </Link>
                 </>
               )}
             </div>
@@ -918,9 +1013,14 @@ export default function FinanceSection({ onBack }) {
               {tipLoading ? (
                 <AISkeleton height={48} />
               ) : (
-                <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.7, fontStyle: 'italic' }}>
-                  &ldquo;{tipContent || 'Automating your savings — even $50/month — removes the decision entirely. Increase by 1% every quarter.'}&rdquo;
-                </div>
+                <>
+                  <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.7, fontStyle: 'italic' }}>
+                    &ldquo;{tipContent || 'Automating your savings — even $50/month — removes the decision entirely. Increase by 1% every quarter.'}&rdquo;
+                  </div>
+                  <Link href="/blog?category=daily-financial-tip" className="know-more-link know-more-fin">
+                    Know more <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
+                  </Link>
+                </>
               )}
             </div>
 
@@ -948,50 +1048,7 @@ export default function FinanceSection({ onBack }) {
               {/* ── Today tab ─────────────────────────────────── */}
               {expTab === 'today' && (
                 <div>
-                  {todayLoading ? (
-                    <ExpRowSkeleton />
-                  ) : todayExpenses.length === 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 0 8px' }}>
-                      <i className="ph-bold ph-receipt" style={{ fontSize: 22, color: 'var(--text-3)' }} />
-                      <div style={{ fontSize: 13, color: 'var(--text-3)', textAlign: 'center' }}>No expenses logged today</div>
-                    </div>
-                  ) : (
-                    todayExpenses.map(e => (
-                      <div key={e.id} className="e-row" style={{ alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                          <div style={{ width: 28, height: 28, borderRadius: 8, background: `${CAT_COLORS[e.category] || '#94A3B8'}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <i className={`ph-bold ${CAT_ICONS[e.category] || 'ph-tag'}`} style={{ fontSize: 13, color: CAT_COLORS[e.category] || '#94A3B8' }} />
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 13, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {e.note || e.category}
-                            </div>
-                            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{e.category}</div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
-                            −${parseFloat(e.amount).toFixed(2)}
-                          </div>
-                          <button
-                            className="ticker-remove-btn"
-                            onClick={() => deleteExpense(e)}
-                            title="Delete expense"
-                            aria-label="Delete expense"
-                          >
-                            <i className="ph-bold ph-x" style={{ fontSize: 11 }} />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-
-                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-1)', padding: '8px 0', borderTop: '0.5px solid var(--border)', marginTop: 4 }}>
-                    Total today:{' '}
-                    <span style={{ color: '#EF4444', fontVariantNumeric: 'tabular-nums' }}>−${totalToday.toFixed(2)}</span>
-                  </div>
-
-                  <div className="e-add">
+                  <div className="e-add" style={{ marginBottom: 10 }}>
                     <input
                       className="e-input"
                       placeholder="$0.00"
@@ -1030,6 +1087,51 @@ export default function FinanceSection({ onBack }) {
                       {addingExpense ? '…' : 'Add'}
                     </button>
                   </div>
+
+                  {todayLoading ? (
+                    <ExpRowSkeleton />
+                  ) : todayExpenses.length === 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 0 8px' }}>
+                      <i className="ph-bold ph-receipt" style={{ fontSize: 22, color: 'var(--text-3)' }} />
+                      <div style={{ fontSize: 13, color: 'var(--text-3)', textAlign: 'center' }}>No expenses logged today</div>
+                    </div>
+                  ) : (
+                    todayExpenses.map(e => (
+                      <div key={e.id} className="e-row" style={{ alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: 8, background: `${CAT_COLORS[e.category] || '#94A3B8'}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <i className={`ph-bold ${CAT_ICONS[e.category] || 'ph-tag'}`} style={{ fontSize: 13, color: CAT_COLORS[e.category] || '#94A3B8' }} />
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {e.note || e.category}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{e.category}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
+                            −${parseFloat(e.amount).toFixed(2)}
+                          </div>
+                          <button
+                            className="ticker-remove-btn"
+                            onClick={() => deleteExpense(e)}
+                            title="Delete expense"
+                            aria-label="Delete expense"
+                          >
+                            <i className="ph-bold ph-x" style={{ fontSize: 11 }} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+
+                  {todayExpenses.length > 0 && (
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-1)', padding: '8px 0', borderTop: '0.5px solid var(--border)', marginTop: 4 }}>
+                      Total today:{' '}
+                      <span style={{ color: '#EF4444', fontVariantNumeric: 'tabular-nums' }}>−${totalToday.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
