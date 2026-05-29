@@ -154,6 +154,66 @@ export async function PATCH(request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Recompute day_score for today if any habit contributes_to_score
+  try {
+    const { data: optedIn } = await supabase
+      .from('habits')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .eq('is_active', true)
+      .eq('contributes_to_score', true)
+
+    if (optedIn?.length) {
+      const { calculateDayScore } = await import('@/lib/day-score')
+
+      const { data: tracking } = await supabase
+        .from('daily_tracking')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('date', today)
+        .single()
+
+      if (tracking) {
+        const optedInIds = optedIn.map(h => h.id)
+        const { count: doneCount } = await supabase
+          .from('habit_completions')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', session.user.id)
+          .in('habit_id', optedInIds)
+          .eq('date', today)
+
+        const { count: checklistTotal } = await supabase
+          .from('checklist_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', session.user.id)
+          .eq('is_active', true)
+
+        const { count: checklistDone } = await supabase
+          .from('checklist_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', session.user.id)
+          .eq('is_active', true)
+          .eq('is_done', true)
+
+        const newScore = calculateDayScore(
+          tracking,
+          checklistTotal || 0,
+          checklistDone || 0,
+          optedIn.length,
+          doneCount || 0
+        )
+
+        await supabase
+          .from('daily_tracking')
+          .update({ day_score: newScore })
+          .eq('user_id', session.user.id)
+          .eq('date', today)
+      }
+    }
+  } catch {
+    // Non-critical: day score update failure doesn't break habit toggle
+  }
+
   return NextResponse.json({ ok: true })
 }
 
