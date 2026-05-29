@@ -784,10 +784,6 @@ export default function LifestyleSection({ onBack }) {
                     {doneDays >= METHOD_DAYS ? 'All days complete!' : markedToday ? 'Already marked today ✓' : 'Mark today done'}
                   </button>
 
-                  <Link href="/blog?category=method-of-week" className="know-more-link know-more-life" style={{ marginTop: 4 }}>
-                    Know more <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
-                  </Link>
-
                   <div className="method-feedback">
                     <div className="method-feedback-title">How&rsquo;s it going?</div>
                     <div className="star-row">
@@ -841,6 +837,10 @@ export default function LifestyleSection({ onBack }) {
 
                 </div>
               )}
+
+              <Link href="/blog?category=method-of-week" className="know-more-link know-more-life" style={{ marginTop: 8 }}>
+                Know more <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
+              </Link>
             </div>
 
             {/* Journal */}
