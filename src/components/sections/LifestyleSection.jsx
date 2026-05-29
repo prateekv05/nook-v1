@@ -8,6 +8,7 @@ import CalendarModal from '@/components/ui/CalendarModal'
 import JournalHistoryModal from '@/components/ui/JournalHistoryModal'
 import { useAIContent } from '@/hooks/useAIContent'
 import { drawLineChart } from '@/lib/chart-utils'
+import Link from 'next/link'
 
 const CAT_STYLE = {
   home:   { bg: 'var(--life-bg)',  bdr: 'var(--life-bdr)',  col: 'var(--life-col)',  icon: 'ph-house',     label: 'Home'   },
@@ -782,6 +783,10 @@ export default function LifestyleSection({ onBack }) {
                   >
                     {doneDays >= METHOD_DAYS ? 'All days complete!' : markedToday ? 'Already marked today ✓' : 'Mark today done'}
                   </button>
+
+                  <Link href="/blog?category=method-of-week" className="know-more-link know-more-life" style={{ marginTop: 4 }}>
+                    Know more <i className="ph-bold ph-arrow-right" style={{ fontSize: 11 }} />
+                  </Link>
 
                   <div className="method-feedback">
                     <div className="method-feedback-title">How&rsquo;s it going?</div>
