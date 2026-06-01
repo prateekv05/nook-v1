@@ -35,6 +35,8 @@ export default function LifestyleColumn({ onExpand }) {
   const [checklistLoading, setChecklistLoading] = useState(true)
   const [checklistError, setChecklistError] = useState(false)
   const [userId, setUserId] = useState(null)
+  const [methodName, setMethodName] = useState(null)
+  const [doneDays, setDoneDays] = useState(0)
 
   useEffect(() => {
     let mounted = true
@@ -48,15 +50,17 @@ export default function LifestyleColumn({ onExpand }) {
         const today = new Date().toISOString().slice(0, 10)
         const isEvening = new Date().getHours() >= 12
 
-        const [{ data }, { data: tracking }] = await Promise.all([
+        const [{ data }, { data: tracking }, { data: method }] = await Promise.all([
           supabase.from('checklist_items').select('id, text, is_done, is_active').eq('user_id', user.id).eq('is_active', true).order('position').limit(3),
           supabase.from('daily_tracking').select('stress_morning, stress_evening').eq('user_id', user.id).eq('date', today).single(),
+          supabase.from('method_of_week').select('method_name, current_day').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
         ])
 
         if (!mounted) return
         setItems((data || []).map(i => ({ id: i.id, label: i.text, done: i.is_done })))
         const saved = isEvening ? tracking?.stress_evening : tracking?.stress_morning
         if (saved != null) setStress(saved)
+        if (method) { setMethodName(method.method_name); setDoneDays(method.current_day || 0) }
       } catch {
         if (mounted) setChecklistError(true)
       } finally {
@@ -114,14 +118,13 @@ export default function LifestyleColumn({ onExpand }) {
         <div className="sub-section">
           <div className="sub-label">Method of the week</div>
           <div className="method-block">
-            <div className="method-name">Pomodoro Technique</div>
-            <div className="method-quote">&ldquo;Work in focused 25-min sprints — then rest. Protect your energy, not just your time.&rdquo;</div>
+            <div className="method-name">{methodName || 'Pomodoro Technique'}</div>
             <div className="method-days">
               {Array.from({ length: METHOD_DAYS }, (_, i) => (
-                <div key={i} className="md" />
+                <div key={i} className={`md${i < doneDays ? ' done' : ''}`} />
               ))}
             </div>
-            <div className="method-day-label">Start in the Lifestyle tab</div>
+            <div className="method-day-label">{doneDays > 0 ? `Day ${doneDays} of ${METHOD_DAYS}` : 'Start in the Lifestyle tab'}</div>
           </div>
         </div>
 
