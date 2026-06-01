@@ -120,7 +120,7 @@ export async function POST(request) {
 function buildPrompt(type, ctx = {}) {
   switch (type) {
     case 'daily-tip':
-      return 'Give one practical, actionable daily wellness tip in 1-2 sentences. Be specific and encouraging. No markdown, no bullet points — plain text only.'
+      return 'Give one practical, actionable personal finance tip in 1-2 sentences. Focus on saving, budgeting, investing, or spending habits. Be specific and encouraging. No markdown, no bullet points — plain text only.'
 
     case 'word-of-day':
       return `Give a word of the day. Format exactly as:
