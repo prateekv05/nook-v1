@@ -85,9 +85,25 @@ export async function POST(request) {
     )
   }
 
+  // Delete any existing row (expired or not) before inserting fresh content.
+  // The unique constraint is a partial index (WHERE user_id IS NULL) which
+  // Supabase upsert cannot resolve — delete+insert is the reliable alternative.
+  let deleteQuery = supabaseAdmin
+    .from('ai_content_cache')
+    .delete()
+    .eq('content_key', key)
+    .eq('content_type', type)
+
+  if (isShared) {
+    deleteQuery = deleteQuery.is('user_id', null)
+  } else {
+    deleteQuery = deleteQuery.eq('user_id', userId)
+  }
+  await deleteQuery
+
   await supabaseAdmin
     .from('ai_content_cache')
-    .upsert({
+    .insert({
       user_id:       userId,
       content_type:  type,
       content_key:   key,
@@ -96,7 +112,7 @@ export async function POST(request) {
       token_count:   aiText.length,
       generated_at:  new Date().toISOString(),
       expires_at:    expiryFor(type),
-    }, { onConflict: 'content_key' })
+    })
 
   return NextResponse.json({ content: aiText, cached: false })
 }
