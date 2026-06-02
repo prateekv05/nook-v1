@@ -3,15 +3,6 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 
-const TRACK = [
-  { label: 'Water',      value: '5/8',  pct: 62, color: 'var(--know-col)' },
-  { label: 'Sleep',      value: '7.5h', pct: 94, color: 'var(--life-col)' },
-  { label: 'Steps',      value: '4.2k', pct: 42, color: 'var(--accent)'   },
-  { label: 'Productive', value: '5 hrs',pct: 62, color: 'var(--accent)'   },
-  { label: 'Meals',      value: '2',    pct: null, color: null            },
-  { label: 'Mood',       value: null,   pct: null, color: null            },
-]
-
 const METHOD_DAYS = 7
 
 const STRESS_EMOJIS = ['😌', '🙂', '😐', '😕', '😤']
@@ -32,6 +23,7 @@ function ChecklistSkeleton() {
 export default function LifestyleColumn({ onExpand }) {
   const [items, setItems] = useState([])
   const [stress, setStress] = useState(null)
+  const [trackingData, setTrackingData] = useState(null)
   const [checklistLoading, setChecklistLoading] = useState(true)
   const [checklistError, setChecklistError] = useState(false)
   const [userId, setUserId] = useState(null)
@@ -52,7 +44,7 @@ export default function LifestyleColumn({ onExpand }) {
 
         const [{ data }, { data: tracking }, { data: method }] = await Promise.all([
           supabase.from('checklist_items').select('id, text, is_done, is_active').eq('user_id', user.id).eq('is_active', true).order('position').limit(3),
-          supabase.from('daily_tracking').select('stress_morning, stress_evening').eq('user_id', user.id).eq('date', today).single(),
+          supabase.from('daily_tracking').select('stress_morning, stress_evening, water, sleep, steps, productive_hrs, meals, mood_morning, mood_evening').eq('user_id', user.id).eq('date', today).single(),
           supabase.from('method_of_week').select('method_name, current_day').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
         ])
 
@@ -60,6 +52,7 @@ export default function LifestyleColumn({ onExpand }) {
         setItems((data || []).map(i => ({ id: i.id, label: i.text, done: i.is_done })))
         const saved = isEvening ? tracking?.stress_evening : tracking?.stress_morning
         if (saved != null) setStress(saved)
+        if (tracking) setTrackingData(tracking)
         if (method) { setMethodName(method.method_name); setDoneDays(method.current_day || 0) }
       } catch {
         if (mounted) setChecklistError(true)
@@ -75,7 +68,7 @@ export default function LifestyleColumn({ onExpand }) {
   const total = items.length
   const progPct = total > 0 ? Math.round((doneCount / total) * 100) : 0
 
-  function toggle(id, e) {
+  async function toggle(id, e) {
     e.stopPropagation()
     let newDone
     setItems(prev => prev.map(i => {
@@ -85,7 +78,7 @@ export default function LifestyleColumn({ onExpand }) {
     }))
     if (!userId) return
     const supabase = createClient()
-    supabase.from('checklist_items').update({ is_done: newDone }).eq('id', id).eq('user_id', userId)
+    await supabase.from('checklist_items').update({ is_done: newDone }).eq('id', id).eq('user_id', userId)
   }
 
   async function handleStress(i, e) {
@@ -196,7 +189,14 @@ export default function LifestyleColumn({ onExpand }) {
         <div className="sub-section">
           <div className="sub-label">Tracking today</div>
           <div className="track-chips">
-            {TRACK.map(t => (
+            {[
+              { label: 'Water',      value: trackingData?.water != null ? `${trackingData.water}/8` : '—',    pct: trackingData?.water != null ? Math.min((trackingData.water / 8) * 100, 100) : 0,  color: 'var(--know-col)' },
+              { label: 'Sleep',      value: trackingData?.sleep != null ? `${trackingData.sleep}h` : '—',     pct: trackingData?.sleep != null ? Math.min((trackingData.sleep / 8) * 100, 100) : 0,  color: 'var(--life-col)' },
+              { label: 'Steps',      value: trackingData?.steps != null ? trackingData.steps >= 1000 ? `${(trackingData.steps / 1000).toFixed(1)}k` : String(trackingData.steps) : '—', pct: trackingData?.steps != null ? Math.min((trackingData.steps / 10000) * 100, 100) : 0, color: 'var(--accent)' },
+              { label: 'Productive', value: trackingData?.productive_hrs != null ? `${trackingData.productive_hrs} hrs` : '—', pct: trackingData?.productive_hrs != null ? Math.min((trackingData.productive_hrs / 8) * 100, 100) : 0, color: 'var(--accent)' },
+              { label: 'Meals',      value: trackingData?.meals != null ? String(trackingData.meals) : '—',   pct: null, color: null },
+              { label: 'Mood',       value: null, pct: null, color: null },
+            ].map(t => (
               <div className="tc" key={t.label}>
                 <div className="tc-l">{t.label}</div>
                 {t.label === 'Mood' ? (

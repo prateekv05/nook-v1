@@ -14,7 +14,9 @@ export async function GET(request) {
 
   const from = new Date()
   from.setDate(from.getDate() - days + 1)
-  const fromISO = from.toISOString().slice(0, 10)
+  const cutoffISO = from.toISOString().slice(0, 10)
+  const signupISO = session.user.created_at ? session.user.created_at.slice(0, 10) : cutoffISO
+  const fromISO   = signupISO > cutoffISO ? signupISO : cutoffISO
 
   const { data, error } = await supabase
     .from('daily_tracking')

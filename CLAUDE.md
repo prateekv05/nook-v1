@@ -12,14 +12,19 @@
 ## SESSION STATE
 *(Claude updates this block at the end of every session)*
 
-**Current Phase:** 15 — Onboarding Wired (in progress)
-**Last completed task:** 15.2 — Post-signup redirects verified and fixed
+**Current Phase:** 16 — Habit Tracker (complete, pending Supabase SQL)
+**Last completed task:** 16.7 — Day Score integration with opted-in habits
 **In progress:** None
-**Next task:** 14.2 — Empty states everywhere (Phase 14 remaining)
+**Next task:** 14.2 — Empty states everywhere (Phase 14 remaining) — then 14.3, 14.5
 **Decisions made this session:**
-- 15.1 `src/components/onboarding/steps/Step12Ready.jsx` — Added `useToast` + try/catch (non-blocking error toast), added `lifestyle_prefs: ['journal','gratitude','checklist','stress']` to upsert, fixed `field` to use `state.fieldOther || state.field`.
-- 15.2 `middleware.js` — Added `withCookies()` helper that forwards Supabase auth cookies (e.g. token refresh) onto every redirect response, preventing session flash on page refresh.
-**Blockers:** None
+- 16 (Habit Tracker) — New top-level sidebar section. Two new DB tables: `habits` + `habit_completions` (SQL must be run manually in Supabase dashboard).
+- 16 `src/app/api/habits/route.js` — GET (week completions + streak walk-back), POST (10-cap + auto-position), PATCH (today-only toggle + day_score recompute for opted-in habits), DELETE (soft-delete).
+- 16 `src/components/sections/HabitTrackerSection.jsx` — Dark summary header, weekly grid, optimistic toggle, hover-to-delete, AddHabitModal with 8 color swatches + Day Score toggle.
+- 16 `src/lib/day-score.js` — Updated `calculateDayScore` to accept `habitTotal`/`habitDone` params; when ≥1 opted-in habit exists, blends habits at 15% weight (existing weights ×0.85).
+- 16 `src/components/layout/Sidebar.jsx` — Added habits nav item (`ph-checks` icon).
+- 16 `src/app/(app)/dashboard/page.jsx` — Added `habits: HabitTrackerSection` to SECTION_MAP.
+- 16 `src/app/globals.css` — Appended full habit tracker CSS block.
+**Blockers:** Task 1 SQL must be run manually in Supabase dashboard (habits + habit_completions tables + RLS). SQL is in docs/superpowers/plans/2026-05-29-habit-tracker.md Task 1.
 
 ---
 

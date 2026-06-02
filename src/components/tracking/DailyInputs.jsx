@@ -145,31 +145,7 @@ export default function DailyInputs({ onDayScoreUpdate }) {
 
       const today = todayISO()
 
-      const payload = {
-        user_id:        user.id,
-        date:           today,
-        water,
-        sleep:          parseFloat(sleep) || null,
-        meals:          meals ? parseInt(meals) || null : null,
-        exercise_type:  isRestDay ? null : (exerciseType || null),
-        exercise_mins:  isRestDay ? null : (parseInt(exerciseMins) || null),
-        steps:          isRestDay ? null : (parseInt(steps) || null),
-        productive_hrs: productive,
-        lazy_hrs:       lazy,
-        mood_morning:   moodMorning !== null ? moodMorning + 1 : null,
-        mood_evening:   moodEvening !== null ? moodEvening + 1 : null,
-        notes:          notes || null,
-        is_rest_day:    isRestDay,
-        updated_at:     new Date().toISOString(),
-      }
-
-      const { error: upsertErr } = await supabase
-        .from('daily_tracking')
-        .upsert(payload, { onConflict: 'user_id,date' })
-
-      if (upsertErr) throw upsertErr
-
-      // Refresh checklist counts after upsert (trigger may have updated history)
+      // Fetch fresh checklist counts before calculating score
       const { data: clData } = await supabase
         .from('checklist_items')
         .select('id, is_done')
@@ -193,11 +169,30 @@ export default function DailyInputs({ onDayScoreUpdate }) {
         done,
       )
 
-      await supabase
+      const payload = {
+        user_id:        user.id,
+        date:           today,
+        water,
+        sleep:          parseFloat(sleep) || null,
+        meals:          meals ? parseInt(meals) || null : null,
+        exercise_type:  isRestDay ? null : (exerciseType || null),
+        exercise_mins:  isRestDay ? null : (parseInt(exerciseMins) || null),
+        steps:          isRestDay ? null : (parseInt(steps) || null),
+        productive_hrs: productive,
+        lazy_hrs:       lazy,
+        mood_morning:   moodMorning !== null ? moodMorning + 1 : null,
+        mood_evening:   moodEvening !== null ? moodEvening + 1 : null,
+        notes:          notes || null,
+        is_rest_day:    isRestDay,
+        day_score:      finalScore,
+        updated_at:     new Date().toISOString(),
+      }
+
+      const { error: upsertErr } = await supabase
         .from('daily_tracking')
-        .update({ day_score: finalScore })
-        .eq('user_id', user.id)
-        .eq('date', today)
+        .upsert(payload, { onConflict: 'user_id,date' })
+
+      if (upsertErr) throw upsertErr
 
       setLocked(true)
       showToast('Day locked ✓', 'success')

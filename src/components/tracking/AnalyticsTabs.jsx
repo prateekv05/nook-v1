@@ -43,6 +43,7 @@ export default function AnalyticsTabs() {
   const [userId,      setUserId]      = useState(null)
   const [profile,     setProfile]     = useState(null)
   const [selectedRing, setSelectedRing] = useState(null)
+  const [userCreatedAt, setUserCreatedAt] = useState(null)
 
   useEffect(() => {
     async function fetchAll() {
@@ -64,6 +65,7 @@ export default function AnalyticsTabs() {
         setMonthlyData(m.data || [])
         if (user) {
           setUserId(user.id)
+          setUserCreatedAt(user.created_at ? user.created_at.slice(0, 10) : null)
           if (profResult.data) setProfile(profResult.data)
         }
       } catch {
@@ -98,8 +100,8 @@ export default function AnalyticsTabs() {
     userContext: trackingSummary,
   })
 
-  // Build history rings from last 7 days
-  const weekDates   = lastNDays(7)
+  // Build history rings from last 7 days, clamped to signup date
+  const weekDates   = lastNDays(7).filter(d => !userCreatedAt || d >= userCreatedAt)
   const byDate      = Object.fromEntries(weeklyData.map(r => [r.date, r]))
   const historyRings = weekDates.map(date => ({
     date,
@@ -163,12 +165,11 @@ export default function AnalyticsTabs() {
                   onClick={() => setSelectedRing(selectedRing === i ? null : i)}
                   aria-label={`${r.day} ${r.dateNum} — score ${r.score}`}
                 >
-                  <DayScoreRing score={r.score} size={56} strokeWidth={4} bgStroke="var(--border)" />
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>
-                    {r.score || '—'}
+                  <DayScoreRing score={r.score} size={62} strokeWidth={5} bgStroke="var(--border)" />
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 9, color: selectedRing === i ? 'var(--accent)' : 'var(--text-3)', fontWeight: selectedRing === i ? 600 : 400, lineHeight: 1.4 }}>{r.day}</div>
+                    <div style={{ fontSize: 8, color: 'var(--text-3)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>{r.dateNum}</div>
                   </div>
-                  <div style={{ fontSize: 9, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{r.day}</div>
-                  <div style={{ fontSize: 9, color: 'var(--text-3)', fontVariantNumeric: 'tabular-nums' }}>{r.dateNum}</div>
                 </button>
               ))}
             </div>

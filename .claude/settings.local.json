@@ -63,11 +63,22 @@
       "Bash(npm list *)",
       "Skill(impeccable)",
       "Skill(impeccable:*)",
-      "Bash(node /Users/prateekvangari/.claude/skills/impeccable/scripts/load-context.mjs)"
+      "Bash(node /Users/prateekvangari/.claude/skills/impeccable/scripts/load-context.mjs)",
+      "Bash(git -C /Users/prateekvangari/Downloads/nook add src/app/globals.css src/components/settings/SettingsView.jsx)",
+      "Bash(git -C /Users/prateekvangari/Downloads/nook push origin main)",
+      "Bash(git -C /Users/prateekvangari/Downloads/nook add src/app/\\\\\\(auth\\\\\\)/login/page.jsx)",
+      "Bash(node --input-type=module --eval ' *)",
+      "Bash(mkdir -p /Users/prateekvangari/Downloads/nook/docs/superpowers/specs)",
+      "Bash(ls /Users/prateekvangari/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/scripts/)",
+      "Read(//Users/prateekvangari/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/scripts/**)",
+      "Bash(find /Users/prateekvangari/.claude -name \"start-server.sh\" 2>/dev/null | head -5)",
+      "Read(//Users/prateekvangari/.claude/**)",
+      "Bash(bash /Users/prateekvangari/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/brainstorming/scripts/start-server.sh --project-dir /Users/prateekvangari/Downloads/nook)"
     ],
     "additionalDirectories": [
       "/Users/prateekvangari/Downloads/nook-scaffold",
-      "/private/tmp"
+      "/private/tmp",
+      "/Users/prateekvangari/Downloads/nook/docs/superpowers/specs"
     ]
   }
 }

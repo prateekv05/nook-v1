@@ -27,10 +27,12 @@ export default function HistoryList() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
 
-      const today   = todayISO()
-      const cutoff  = new Date()
+      const today    = todayISO()
+      const cutoff   = new Date()
       cutoff.setDate(cutoff.getDate() - 14)
-      const fromISO = cutoff.toISOString().slice(0, 10)
+      const cutoffISO  = cutoff.toISOString().slice(0, 10)
+      const signupISO  = user.created_at ? user.created_at.slice(0, 10) : cutoffISO
+      const fromISO    = signupISO > cutoffISO ? signupISO : cutoffISO
 
       const [trackRes, clRes] = await Promise.all([
         supabase

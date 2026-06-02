@@ -52,6 +52,21 @@ function AuthPage() {
     form.classList.add('shake')
   }
 
+  async function handleGoogle() {
+    setError('')
+    setLoading(true)
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+    if (oauthError) {
+      setError(oauthError.message)
+      setLoading(false)
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
@@ -282,13 +297,9 @@ function AuthPage() {
         </div>
 
         <div className="ob-social-row">
-          <button type="button" className="ob-social-btn google">
+          <button type="button" className="ob-social-btn google" onClick={handleGoogle} disabled={loading}>
             <i className="ph-bold ph-google-logo" />
-            Google
-          </button>
-          <button type="button" className="ob-social-btn apple">
-            <i className="ph-bold ph-apple-logo" />
-            Apple
+            Continue with Google
           </button>
         </div>
 
