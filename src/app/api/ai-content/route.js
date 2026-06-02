@@ -118,12 +118,15 @@ export async function POST(request) {
 }
 
 function buildPrompt(type, ctx = {}) {
+  const date = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000)
+
   switch (type) {
     case 'daily-tip':
-      return 'Give one practical, actionable personal finance tip in 1-2 sentences. Focus on saving, budgeting, investing, or spending habits. Be specific and encouraging. No markdown, no bullet points — plain text only.'
+      return `Today is ${date} (day ${dayOfYear} of the year). Give one specific, actionable personal finance tip for today that feels fresh and non-obvious. Avoid the most common generic advice like automating savings transfers, building an emergency fund, or compound interest. Focus on a concrete technique, mindset shift, or less-discussed strategy. 1-2 sentences. No markdown, no bullet points — plain text only.`
 
     case 'word-of-day':
-      return `Give a word of the day. Format exactly as:
+      return `Today is ${date} (day ${dayOfYear} of the year). Choose a word of the day that is genuinely uncommon and intellectually interesting — not a tired vocabulary-list word like "ephemeral", "serendipity", "ubiquitous", "eloquent", "melancholy", or "perspicacious". Pick something a well-read adult would still find surprising. Format exactly as:
 WORD: [word]
 PRONUNCIATION: [pronunciation]
 DEFINITION: [1-sentence definition]
@@ -131,11 +134,11 @@ EXAMPLE: [1-sentence example using the word]
 No extra text.`
 
     case 'did-you-know':
-      return 'Share one fascinating, surprising fact that most people don\'t know. 2-3 sentences. Plain text only, no markdown.'
+      return `Today is ${date} (day ${dayOfYear} of the year). Share one genuinely surprising, little-known fact. Do NOT use these overused internet facts: Cleopatra being closer to the moon landing than the pyramids, honey never spoiling, Oxford being older than the Aztec empire, bananas being radioactive, a day on Venus being longer than its year, or wombat cube-shaped droppings. Find something obscure from science, history, linguistics, or nature that most people truly don't know. 2-3 sentences. Plain text only, no markdown.`
 
     case 'concept':
-      return `Give one interesting intellectual concept${ctx.topics ? ` related to ${ctx.topics}` : ''} that a curious person would find valuable. Format exactly as:
-CONCEPT: [short concept name — 1-4 words, e.g. "Dunning-Kruger Effect", "Compounding", "Sunk Cost Fallacy"]
+      return `Today is ${date} (day ${dayOfYear} of the year). Give one intellectual concept${ctx.topics ? ` related to ${ctx.topics}` : ''} that a curious person would find genuinely valuable. Avoid the most commonly cited concepts: Dunning-Kruger Effect, Overton Window, Sunk Cost Fallacy, Occam's Razor, Parkinson's Law, the 10,000-hour rule, and Maslow's hierarchy. Choose something less well-known but equally insightful. Format exactly as:
+CONCEPT: [short concept name — 1-4 words]
 EXPLANATION: [2-3 sentences explaining it simply with a real-world example]
 No extra text.`
 
@@ -143,7 +146,7 @@ No extra text.`
       return `Generate a thoughtful journaling prompt${ctx.mood ? ` for someone feeling ${ctx.mood}` : ''}. One sentence, thought-provoking, introspective. No markdown.`
 
     case 'positivity':
-      return `Write a warm, genuine motivational message${ctx.name ? ` for ${ctx.name}` : ''}${ctx.score !== undefined ? ` who has a day score of ${ctx.score}/100` : ''}. 1-2 sentences. Encouraging without being cheesy. Plain text only.`
+      return `Today is ${date}. Write a warm, genuine motivational message${ctx.name ? ` for ${ctx.name}` : ''}. 1-2 sentences. Make it feel personal and specific — avoid generic phrases like "every small step counts", "believe in yourself", or "you've got this". Plain text only.`
 
     case 'ai-insights':
       return buildInsightsPrompt(ctx)

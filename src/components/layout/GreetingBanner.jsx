@@ -63,10 +63,10 @@ export default function GreetingBanner({ done = 0, total = 0 }) {
     return () => { mounted = false }
   }, [])
 
-  const weekStart = getWeekStart()
+  const todayKey = new Date().toISOString().slice(0, 10)
   const { content: positivity } = useAIContent({
     type: 'positivity',
-    key: userId ? `positivity-${userId}-${weekStart}` : null,
+    key: userId ? `positivity-${todayKey}` : null,
     userContext: { name: firstName, done, total },
   })
 

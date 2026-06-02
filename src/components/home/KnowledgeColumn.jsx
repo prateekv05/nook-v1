@@ -93,8 +93,8 @@ export default function KnowledgeColumn({ onExpand, learningTopics = [] }) {
 
   const todayKey   = new Date().toISOString().slice(0, 10)
   const firstTopic = learningTopics[0] || 'general knowledge'
-  const { content: dykContent,     loading: dykLoading,     error: dykError     } = useAIContent({ type: 'did-you-know', key: `did-you-know-v2-${todayKey}` })
-  const { content: conceptContent, loading: conceptLoading, error: conceptError } = useAIContent({ type: 'concept', key: `concept-v2-${firstTopic}-${todayKey}`, userContext: { topics: firstTopic } })
+  const { content: dykContent,     loading: dykLoading,     error: dykError     } = useAIContent({ type: 'did-you-know', key: `did-you-know-v3-${todayKey}` })
+  const { content: conceptContent, loading: conceptLoading, error: conceptError } = useAIContent({ type: 'concept', key: `concept-v3-${firstTopic}-${todayKey}`, userContext: { topics: firstTopic } })
 
   useEffect(() => {
     const supabase = createClient()
