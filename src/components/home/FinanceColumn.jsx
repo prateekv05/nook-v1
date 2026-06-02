@@ -58,8 +58,8 @@ export default function FinanceColumn({ onExpand }) {
   const intervalRef = useRef(null)
 
   const todayKey = new Date().toISOString().slice(0, 10)
-  const { content: wodContent, loading: wodLoading, error: wodError } = useAIContent({ type: 'word-of-day', key: `word-of-day-${todayKey}` })
-  const { content: tipContent, loading: tipLoading, error: tipError } = useAIContent({ type: 'daily-tip',   key: `daily-tip-${todayKey}` })
+  const { content: wodContent, loading: wodLoading, error: wodError } = useAIContent({ type: 'word-of-day', key: `word-of-day-v2-${todayKey}` })
+  const { content: tipContent, loading: tipLoading, error: tipError } = useAIContent({ type: 'daily-tip',   key: `daily-tip-v2-${todayKey}` })
   const wod = parseWOD(wodContent)
   const wodFailed = !wodLoading && (wodError || (!wod.word && !wod.def))
 

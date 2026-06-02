@@ -35,13 +35,21 @@ async function fetchFromNewsData(query) {
   const res = await fetch(url, { cache: 'no-store' })
   if (!res.ok) throw new Error(`NewsData.io error: ${res.status}`)
   const json = await res.json()
-  return (json.results || []).map(a => ({
-    tag:     a.category?.[0] ?? 'News',
-    title:   a.title || '',
-    summary: a.description || a.content?.slice(0, 160) || '',
-    source:  a.source_id || a.source_name || '',
-    url:     a.link || '',
-  }))
+  const seen = new Set()
+  return (json.results || [])
+    .filter(a => {
+      const key = a.link || a.title
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .map(a => ({
+      tag:     a.category?.[0] ?? 'News',
+      title:   a.title || '',
+      summary: a.description || a.content?.slice(0, 160) || '',
+      source:  a.source_id || a.source_name || '',
+      url:     a.link || '',
+    }))
 }
 
 export async function GET(request) {

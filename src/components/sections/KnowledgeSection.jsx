@@ -55,8 +55,8 @@ export default function KnowledgeSection({ onBack, learningTopics = [] }) {
 
   const todayKey   = new Date().toISOString().slice(0, 10)
   const firstTopic = learningTopics[0] || 'general knowledge'
-  const { content: dykContent,     loading: dykLoading     } = useAIContent({ type: 'did-you-know', key: `did-you-know-${todayKey}` })
-  const { content: conceptContent, loading: conceptLoading } = useAIContent({ type: 'concept', key: `concept-${firstTopic}-${todayKey}`, userContext: { topics: firstTopic } })
+  const { content: dykContent,     loading: dykLoading     } = useAIContent({ type: 'did-you-know', key: `did-you-know-v2-${todayKey}` })
+  const { content: conceptContent, loading: conceptLoading } = useAIContent({ type: 'concept', key: `concept-v2-${firstTopic}-${todayKey}`, userContext: { topics: firstTopic } })
 
   useEffect(() => {
     const supabase = createClient()

@@ -158,8 +158,8 @@ export default function FinanceSection({ onBack }) {
   const intervalRef    = useRef(null)
 
   const todayKey = new Date().toISOString().slice(0, 10)
-  const { content: wodContent, loading: wodLoading } = useAIContent({ type: 'word-of-day', key: `word-of-day-${todayKey}` })
-  const { content: tipContent, loading: tipLoading } = useAIContent({ type: 'daily-tip',   key: `daily-tip-${todayKey}` })
+  const { content: wodContent, loading: wodLoading } = useAIContent({ type: 'word-of-day', key: `word-of-day-v2-${todayKey}` })
+  const { content: tipContent, loading: tipLoading } = useAIContent({ type: 'daily-tip',   key: `daily-tip-v2-${todayKey}` })
   const { content: insightContent, loading: insightLoading } = useAIContent({ type: 'ai-insights', key: trendInsightKey, userContext: trendInsightCtx })
   const wod = parseWOD(wodContent)
 
