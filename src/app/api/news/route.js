@@ -38,7 +38,9 @@ async function fetchFromNewsData(query) {
   const seen = new Set()
   return (json.results || [])
     .filter(a => {
-      const key = a.link || a.title
+      // Normalize title to catch same story from different source domains
+      const titleKey = (a.title || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 60)
+      const key = titleKey || a.link
       if (!key || seen.has(key)) return false
       seen.add(key)
       return true
@@ -76,7 +78,7 @@ export async function GET(request) {
 
   await Promise.all(topics.map(async (topic) => {
     const query = TOPIC_QUERY_MAP[topic] || topic
-    const cacheKey = `news-${topic}-${date}`
+    const cacheKey = `news-v2-${topic}-${date}`
 
     const { data: cached } = await supabaseAdmin
       .from('ai_content_cache')
